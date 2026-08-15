@@ -17,7 +17,6 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2.0",
-    "pytest-asyncio>=0.23.0",
     "httpx2>=2.10.0",      # needed by TestClient / async test client
     "anyio>=4.4.0",
 ]
@@ -27,5 +26,4 @@ where = ["."]
 include = ["app*", "core*"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
