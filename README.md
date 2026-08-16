@@ -1,7 +1,7 @@
 # Network Traffic Monitoring & Intelligent Path Selection
 
-> **Disclaimer**: This project is a **learning exercise** inspired by SD-WAN (Software-Defined Wide Area Network)
-> path-selection concepts. It is **not** a production SD-WAN system, does not implement BGP/OSPF, MPLS, or
+> **Disclaimer**: This project is inspired by SD-WAN (Software-Defined Wide Area Network)
+> path-selection concepts. It is not a production SD-WAN system, does not implement BGP/OSPF, MPLS, or
 > any real routing protocol, and makes no claim to be a replacement for commercial SD-WAN products.
 > It was built to develop and demonstrate networking and backend engineering fundamentals.
 
@@ -50,13 +50,13 @@ tested, and changed independently.
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| API | FastAPI + uvicorn | Fast, async-native, excellent OpenAPI docs |
-| Monitoring | Python asyncio + sockets | Teaches the fundamentals directly, no library magic |
-| Config | pydantic-settings | Typed, validated, env-variable driven |
-| Testing | pytest + httpx TestClient | Simple, readable, standard |
-| Runtime | Python 3.12 | Latest stable; asyncio improvements relevant here |
+| Layer | Technology | 
+|-------|-----------|
+| API | FastAPI + uvicorn | 
+| Monitoring | Python asyncio + sockets |
+| Config | pydantic-settings |
+| Testing | pytest + httpx TestClient | 
+| Runtime | Python 3.12 | 
 
 ---
 
@@ -156,7 +156,6 @@ separation visible from the start, without adding premature abstractions.
 
 ## Learning Goals
 
-By the end of this project you should be able to explain:
 - TCP vs UDP — when and why each is used for probing
 - How latency, packet loss, jitter, and throughput are measured programmatically
 - Why asyncio is useful for concurrent network probing
