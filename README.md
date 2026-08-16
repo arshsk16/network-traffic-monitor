@@ -25,23 +25,6 @@ Higher throughput → better score. No ML — the formula is explicit and readab
 
 ---
 
-## Project Status
-
-This project is built **one step at a time**, with each step explained and committed independently.
-
-| Step | Description | Status |
-|------|-------------|--------|
-| 1 | Project setup, FastAPI skeleton, health endpoint, tests | ✅ Done |
-| 2 | Basic TCP/UDP network probing | 🔲 Planned |
-| 3 | Latency measurement | 🔲 Planned |
-| 4 | Packet loss & timeout detection | 🔲 Planned |
-| 5 | Jitter measurement | 🔲 Planned |
-| 6 | Throughput measurement | 🔲 Planned |
-| 7 | Multiple paths support | 🔲 Planned |
-| 8 | Configurable weighted path scoring | 🔲 Planned |
-| 9 | Path selection & failure handling | 🔲 Planned |
-| 10 | Full metrics/selection API endpoints | 🔲 Planned |
-| 11 | Integration tests, Docker (if useful), docs | 🔲 Planned |
 
 ---
 
