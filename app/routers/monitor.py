@@ -2,7 +2,9 @@
 app/routers/monitor.py — FastAPI router for the monitoring API.
 
 Exposes:
-    GET /api/v1/monitor   — run one monitoring cycle, return JSON
+    GET  /api/v1/monitor               — run one monitoring cycle, return JSON
+    POST /api/v1/demo/simulate-failure — stop primary server (real failure)
+    POST /api/v1/demo/reset            — restart primary server + reset state
 
 Architecture
 ────────────
@@ -26,9 +28,11 @@ It calls run_monitoring_cycle() and converts CycleResult → Pydantic model.
 
 State management
 ────────────────
-monitoring_state (PathState) and demo_paths (list[Path]) are imported
-from app.state. They are module-level singletons that persist across
-requests. See app/state.py for the full explanation.
+monitoring_state (PathState) and demo_paths (list[Path]) are accessed via
+`import app.state as app_state` and read as module-level attributes on each
+call. This ensures that reset_demo() reassignments (which rebind the module-
+level `monitoring_state` name) are immediately visible to all endpoints
+without requiring a process restart.
 
 Error handling
 ──────────────
@@ -40,12 +44,10 @@ will propagate as a 500 naturally — we do NOT catch Exception broadly.
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from app.state import demo_paths, monitoring_state
+import app.state as app_state
 from core.cycle import CycleResult, run_monitoring_cycle
 
 router = APIRouter(prefix="/api/v1", tags=["monitor"])
@@ -108,6 +110,20 @@ class MonitorResponse(BaseModel):
             "throughput in the local test environment, not WAN bandwidth."
         ),
         description="Disclaimer note shown on every response",
+    )
+    primary_failed: bool = Field(
+        default=False,
+        description="True when the primary server has been deliberately stopped for the demo",
+    )
+
+
+class DemoControlResponse(BaseModel):
+    """Response returned by demo control endpoints."""
+
+    ok: bool = Field(description="True if the operation succeeded")
+    message: str = Field(description="Human-readable description of what happened")
+    primary_failed: bool = Field(
+        description="Current value of the primary_failed flag after the operation"
     )
 
 
@@ -177,10 +193,11 @@ def _cycle_result_to_response(result: CycleResult) -> MonitorResponse:
         preferred_path=preferred,
         event=result.transition.event_type.value,
         previous_path=previous,
+        primary_failed=app_state.primary_failed,
     )
 
 
-# ── Endpoint ───────────────────────────────────────────────────────────────────
+# ── Endpoints ──────────────────────────────────────────────────────────────────
 
 
 @router.get(
@@ -199,15 +216,59 @@ async def run_monitor_cycle() -> MonitorResponse:
     """
     Run one complete monitoring cycle and return path metrics + state.
 
-    Uses the shared monitoring_state so that transition events (FAILOVER,
-    NO_CHANGE, etc.) are correctly computed relative to the previous call.
+    Reads demo_paths and monitoring_state from the app.state module on
+    each invocation so that reset_demo() changes take effect immediately.
     """
     result: CycleResult = await run_monitoring_cycle(
-        demo_paths,
-        state=monitoring_state,
+        app_state.demo_paths,
+        state=app_state.monitoring_state,
         probe_count=2,
         probe_timeout=1.0,
         transfer_bytes=32 * 1024,
         throughput_timeout=5.0,
     )
     return _cycle_result_to_response(result)
+
+
+@router.post(
+    "/demo/simulate-failure",
+    response_model=DemoControlResponse,
+    summary="Simulate primary path failure",
+    description=(
+        "Stop the primary demo server so that the next monitoring cycle "
+        "detects 100% probe loss on the primary path and triggers a FAILOVER "
+        "transition to backup. No metrics are faked — the monitoring pipeline "
+        "runs against a genuinely unavailable server."
+    ),
+)
+async def demo_simulate_failure() -> DemoControlResponse:
+    """Stop the primary demo server to trigger a real failover on next cycle."""
+    app_state.simulate_primary_failure()
+    return DemoControlResponse(
+        ok=True,
+        message="Primary server stopped. Run a monitoring cycle to observe FAILOVER.",
+        primary_failed=app_state.primary_failed,
+    )
+
+
+@router.post(
+    "/demo/reset",
+    response_model=DemoControlResponse,
+    summary="Reset the demo environment",
+    description=(
+        "Restart the primary demo server on a new ephemeral port and reset "
+        "the monitoring PathState to None. The next cycle will produce "
+        "INITIAL_SELECTION, allowing the full demonstration sequence "
+        "(INITIAL_SELECTION → NO_CHANGE → FAILOVER → NO_CHANGE) to be "
+        "repeated from scratch."
+    ),
+)
+async def demo_reset() -> DemoControlResponse:
+    """Restart the primary server and reset PathState for a clean demo run."""
+    app_state.reset_demo()
+    return DemoControlResponse(
+        ok=True,
+        message="Demo reset. Primary server restarted. Run a cycle to see INITIAL_SELECTION.",
+        primary_failed=app_state.primary_failed,
+    )
+

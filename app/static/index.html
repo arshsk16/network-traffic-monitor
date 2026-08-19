@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Network Traffic Monitor — SD-WAN Path Selection Demo</title>
+  <title>Network Traffic Monitor â€” SD-WAN Path Selection Demo</title>
   <meta name="description" content="Local loopback SD-WAN path selection demonstration using application-level TCP measurements." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    /* ── Design tokens ──────────────────────────────────────────────── */
+    /* â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     :root {
       --bg:            #0d1117;
       --surface:       #161b22;
@@ -31,7 +31,7 @@
       --radius-sm:     8px;
     }
 
-    /* ── Reset & base ───────────────────────────────────────────────── */
+    /* â”€â”€ Reset & base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; scroll-behavior: smooth; }
     body {
@@ -42,10 +42,10 @@
       line-height: 1.6;
     }
 
-    /* ── Layout ─────────────────────────────────────────────────────── */
+    /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
-    /* ── Header ─────────────────────────────────────────────────────── */
+    /* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     header {
       background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
       border-bottom: 1px solid var(--border);
@@ -76,7 +76,7 @@
       text-transform: uppercase;
       margin-bottom: 16px;
     }
-    .header-badge::before { content: '●'; font-size: 8px; }
+    .header-badge::before { content: 'â—'; font-size: 8px; }
     h1 {
       font-size: clamp(1.5rem, 3vw, 2.2rem);
       font-weight: 700;
@@ -102,10 +102,10 @@
     }
     .demo-notice strong { color: var(--accent); }
 
-    /* ── Main content ───────────────────────────────────────────────── */
+    /* â”€â”€ Main content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     main { padding: 40px 0 80px; }
 
-    /* ── Section headings ────────────────────────────────────────────── */
+    /* â”€â”€ Section headings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .section-label {
       font-size: 0.7rem;
       font-weight: 600;
@@ -124,8 +124,16 @@
       background: var(--border-subtle);
     }
 
-    /* ── Run button ─────────────────────────────────────────────────── */
-    .controls { margin-bottom: 40px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    /* â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .controls {
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Primary run button */
     #run-btn {
       display: inline-flex;
       align-items: center;
@@ -134,29 +142,61 @@
       color: #0d1117;
       border: none;
       border-radius: var(--radius-sm);
-      padding: 12px 24px;
+      padding: 12px 22px;
       font-family: inherit;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
       box-shadow: 0 0 0 0 var(--accent-glow);
+      white-space: nowrap;
     }
-    #run-btn:hover { opacity: 0.9; box-shadow: 0 0 20px var(--accent-glow); }
-    #run-btn:active { transform: scale(0.97); }
-    #run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    #run-btn svg { width: 16px; height: 16px; }
+    #run-btn:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 0 20px var(--accent-glow); }
+    #run-btn:active:not(:disabled) { transform: scale(0.97); }
+    #run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    #run-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-    /* spinner inside button */
-    .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid rgba(13,17,23,0.3);
-      border-top-color: #0d1117;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
+    /* Failure simulation button */
+    #fail-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--yellow);
+      border: 1px solid rgba(227,179,65,0.4);
+      border-radius: var(--radius-sm);
+      padding: 11px 18px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      white-space: nowrap;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    #fail-btn:hover:not(:disabled) { background: var(--yellow-dim); border-color: rgba(227,179,65,0.6); }
+    #fail-btn:active:not(:disabled) { transform: scale(0.97); }
+    #fail-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Reset button */
+    #reset-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 18px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    #reset-btn:hover:not(:disabled) { background: var(--surface2); border-color: var(--text-dim); color: var(--text); }
+    #reset-btn:active:not(:disabled) { transform: scale(0.97); }
+    #reset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
     .cycle-counter {
       font-size: 0.8rem;
@@ -165,10 +205,55 @@
     }
     .cycle-counter span { color: var(--accent); font-weight: 600; }
 
-    /* ── Status banner ───────────────────────────────────────────────── */
+    /* â”€â”€ Demo stage indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    #demo-stage {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 28px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+    #demo-stage .stage-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #demo-stage .stage-label { color: var(--text-muted); margin-right: 4px; }
+    #demo-stage .stage-value { font-weight: 600; }
+    #demo-stage.healthy   .stage-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
+    #demo-stage.healthy   .stage-value { color: var(--green); }
+    #demo-stage.failure   .stage-dot { background: var(--yellow); }
+    #demo-stage.failure   .stage-value { color: var(--yellow); }
+    #demo-stage .stage-hint { color: var(--text-dim); margin-left: auto; font-size: 0.73rem; }
+
+    /* spinner inside button */
+    .spinner {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(13,17,23,0.3);
+      border-top-color: #0d1117;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    .spinner-muted {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-top-color: var(--text-muted);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* â”€â”€ Status banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #status-banner {
       display: none;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
       padding: 16px 20px;
       border-radius: var(--radius);
       font-size: 0.9rem;
@@ -183,30 +268,169 @@
     .banner-event { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
     .banner-detail { opacity: 0.85; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
 
-    /* ── Preferred path panel ─────────────────────────────────────────── */
-    #preferred-panel {
+    /* â”€â”€ PATH DECISION panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    #decision-panel {
+      display: none;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px 28px;
-      margin-bottom: 32px;
-      display: none;
+      margin-bottom: 28px;
       animation: fadeIn 0.3s ease;
     }
-    .preferred-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
-    .preferred-name { font-size: 2rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; text-transform: uppercase; }
-    .preferred-name.none { color: var(--red); }
-    .preferred-meta { margin-top: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
-    .meta-item { display: flex; flex-direction: column; gap: 2px; }
-    .meta-key { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
-    .meta-val { font-size: 0.9rem; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
-    .meta-val.initial  { color: var(--green); }
-    .meta-val.nochange { color: var(--accent); }
-    .meta-val.failover { color: var(--yellow); }
-    .meta-val.nopaths  { color: var(--red); }
-    .arrow { font-size: 1.1rem; }
+    #decision-panel.failover-active {
+      border-color: rgba(227,179,65,0.4);
+      box-shadow: 0 0 0 1px rgba(227,179,65,0.08), inset 0 0 40px rgba(227,179,65,0.02);
+    }
 
-    /* ── Path cards ──────────────────────────────────────────────────── */
+    .decision-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .decision-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .decision-event-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .decision-event-badge.initial  { background: var(--green-dim);  border-color: rgba(63,185,80,0.3);  color: var(--green); }
+    .decision-event-badge.nochange { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.25); color: var(--accent); }
+    .decision-event-badge.failover { background: var(--yellow-dim); border-color: rgba(227,179,65,0.4); color: var(--yellow); }
+    .decision-event-badge.nopaths  { background: var(--red-dim);    border-color: rgba(248,81,73,0.3);   color: var(--red); }
+
+    /* Preferred path display */
+    .decision-preferred {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .decision-pref-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .decision-pref-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      color: var(--green);
+      line-height: 1;
+    }
+    .decision-pref-name.none { color: var(--red); }
+
+    /* Transition arrow */
+    .decision-transition {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 10px 16px;
+      background: var(--yellow-dim);
+      border: 1px solid rgba(227,179,65,0.25);
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--yellow);
+    }
+    .decision-transition.show { display: flex; }
+    .transition-from { opacity: 0.7; text-transform: uppercase; }
+    .transition-arrow { font-size: 1.1rem; }
+    .transition-to { text-transform: uppercase; }
+
+    /* Score comparison table */
+    .score-comparison {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .score-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 70px 80px;
+      align-items: center;
+      gap: 12px;
+    }
+    .score-row-name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .score-row-name .mini-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .mini-dot.ok  { background: var(--green); box-shadow: 0 0 4px var(--green); animation: pulse 2s ease-in-out infinite; }
+    .mini-dot.bad { background: var(--red); }
+    .score-row-bar-wrap { position: relative; }
+    .score-row-bar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .score-row-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .score-row-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: right;
+    }
+    .score-row-status {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+    .score-row-status.selected { color: var(--green); }
+    .score-row-status.unavail  { color: var(--red); }
+    .score-row-status.standby  { color: var(--text-dim); }
+
+    /* â”€â”€ Error state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    #error-msg {
+      display: none;
+      background: var(--red-dim);
+      border: 1px solid rgba(248,81,73,0.3);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      color: var(--red);
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* â”€â”€ Path cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #paths-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -217,7 +441,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
       animation: fadeIn 0.35s ease;
       position: relative;
       overflow: hidden;
@@ -227,8 +451,9 @@
       box-shadow: 0 0 0 1px rgba(63,185,80,0.1), inset 0 0 40px rgba(63,185,80,0.03);
     }
     .path-card.unavailable {
-      border-color: rgba(248,81,73,0.25);
-      background: rgba(248,81,73,0.02);
+      border-color: rgba(248,81,73,0.4);
+      background: rgba(248,81,73,0.03);
+      box-shadow: 0 0 0 1px rgba(248,81,73,0.08), inset 0 0 40px rgba(248,81,73,0.02);
     }
     .preferred-star {
       position: absolute;
@@ -240,6 +465,19 @@
       background: var(--green-dim);
       border: 1px solid rgba(63,185,80,0.3);
       color: var(--green);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .loss-badge {
+      position: absolute;
+      top: 16px; right: 16px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--red-dim);
+      border: 1px solid rgba(248,81,73,0.4);
+      color: var(--red);
       padding: 2px 8px;
       border-radius: 20px;
     }
@@ -313,7 +551,7 @@
       transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    /* ── Empty state ────────────────────────────────────────────────── */
+    /* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #empty-state {
       text-align: center;
       padding: 80px 24px;
@@ -322,21 +560,39 @@
     #empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
     #empty-state h3 { font-size: 1.1rem; font-weight: 500; color: var(--text); margin-bottom: 8px; }
     #empty-state p { font-size: 0.88rem; }
-
-    /* ── Error state ────────────────────────────────────────────────── */
-    #error-msg {
-      display: none;
-      background: var(--red-dim);
-      border: 1px solid rgba(248,81,73,0.3);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      color: var(--red);
-      font-size: 0.85rem;
-      margin-bottom: 24px;
-      font-family: 'JetBrains Mono', monospace;
+    #empty-state .demo-steps {
+      margin-top: 28px;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      font-size: 0.82rem;
     }
+    #empty-state .demo-steps .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    #empty-state .demo-steps .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(88,166,255,0.1);
+      border: 1px solid rgba(88,166,255,0.2);
+      border-radius: 4px;
+      padding: 1px 6px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    #empty-state .demo-steps .step-txt { color: var(--text-muted); line-height: 1.5; }
+    #empty-state .demo-steps .step-txt strong { color: var(--text); }
 
-    /* ── Footer ─────────────────────────────────────────────────────── */
+    /* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     footer {
       border-top: 1px solid var(--border-subtle);
       padding: 24px 0;
@@ -347,7 +603,7 @@
     footer a { color: var(--accent); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
-    /* ── Animations ─────────────────────────────────────────────────── */
+    /* â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -356,27 +612,28 @@
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<!-- â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <header>
   <div class="container">
     <div class="header-badge">Local Loopback Demo</div>
     <h1>Network Traffic <span>Monitor</span></h1>
-    <p class="header-sub">SD-WAN Path Selection · Python 3.12 · Powered by application-level TCP probing</p>
+    <p class="header-sub">SD-WAN Path Selection Â· Python 3.12 Â· Powered by application-level TCP probing</p>
     <div class="demo-notice">
-      <strong>⚠ Demo environment:</strong>
+      <strong>âš  Demo environment:</strong>
       All paths are local loopback (127.0.0.1). Throughput figures are
-      application-level TCP throughput in the local test environment —
+      application-level TCP throughput in the local test environment â€”
       <strong>not WAN or Internet bandwidth</strong>. Path selection logic
       is identical to a production system; only the destinations differ.
     </div>
   </div>
 </header>
 
-<!-- ── Main ───────────────────────────────────────────────────────────── -->
+<!-- â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <main>
   <div class="container">
 
     <!-- Controls -->
+    <div class="section-label" id="controls-label" style="display:none">Demo Controls</div>
     <div class="controls">
       <button id="run-btn" onclick="runCycle()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -384,9 +641,26 @@
         </svg>
         Run Monitoring Cycle
       </button>
+
+      <button id="fail-btn" onclick="simulateFailure()">
+        âš¡ Simulate Primary Failure
+      </button>
+
+      <button id="reset-btn" onclick="resetDemo()">
+        â†º Reset Demo
+      </button>
+
       <div class="cycle-counter" id="cycle-counter" style="display:none">
         Cycle <span id="cycle-num">0</span>
       </div>
+    </div>
+
+    <!-- Demo stage indicator -->
+    <div id="demo-stage">
+      <span class="stage-dot"></span>
+      <span class="stage-label">Demo stage:</span>
+      <span class="stage-value" id="stage-text">HEALTHY</span>
+      <span class="stage-hint" id="stage-hint"></span>
     </div>
 
     <!-- Error -->
@@ -398,24 +672,26 @@
       <div class="banner-detail" id="banner-detail"></div>
     </div>
 
-    <!-- Preferred path panel -->
-    <div id="preferred-panel">
-      <div class="preferred-label">Currently Preferred Path</div>
-      <div class="preferred-name" id="pref-name">—</div>
-      <div class="preferred-meta">
-        <div class="meta-item">
-          <div class="meta-key">Event</div>
-          <div class="meta-val" id="pref-event">—</div>
-        </div>
-        <div class="meta-item" id="pref-transition-item" style="display:none">
-          <div class="meta-key">Transition</div>
-          <div class="meta-val arrow" id="pref-transition">—</div>
-        </div>
-        <div class="meta-item" id="pref-prev-item" style="display:none">
-          <div class="meta-key">Previous</div>
-          <div class="meta-val" id="pref-prev" style="color:var(--text-muted)">—</div>
-        </div>
+    <!-- PATH DECISION panel -->
+    <div id="decision-panel">
+      <div class="decision-header">
+        <div class="decision-title">PATH DECISION</div>
+        <div class="decision-event-badge" id="decision-badge"></div>
       </div>
+
+      <div class="decision-preferred">
+        <div class="decision-pref-label">Selected Path</div>
+        <div class="decision-pref-name" id="decision-pref-name">â€”</div>
+      </div>
+
+      <div class="decision-transition" id="decision-transition">
+        <span>Failover:</span>
+        <span class="transition-from" id="trans-from"></span>
+        <span class="transition-arrow">â†’</span>
+        <span class="transition-to" id="trans-to"></span>
+      </div>
+
+      <div class="score-comparison" id="score-comparison"></div>
     </div>
 
     <!-- Path cards -->
@@ -424,9 +700,16 @@
 
     <!-- Empty state -->
     <div id="empty-state">
-      <div class="empty-icon">📡</div>
+      <div class="empty-icon">ðŸ“¡</div>
       <h3>No monitoring data yet</h3>
-      <p>Click <strong>Run Monitoring Cycle</strong> to probe the demo paths and visualize the results.</p>
+      <p>Use the demo controls above to walk through a full failover scenario.</p>
+      <div class="demo-steps">
+        <div class="step"><span class="step-num">1</span><span class="step-txt"><strong>Run Monitoring Cycle</strong> â€” see INITIAL_SELECTION and both paths healthy</span></div>
+        <div class="step"><span class="step-num">2</span><span class="step-txt"><strong>Run again</strong> â€” see NO_CHANGE (system is stable)</span></div>
+        <div class="step"><span class="step-num">3</span><span class="step-txt"><strong>Simulate Primary Failure</strong> â€” stops the real primary server</span></div>
+        <div class="step"><span class="step-num">4</span><span class="step-txt"><strong>Run Monitoring Cycle</strong> â€” see FAILOVER: Primary â†’ Backup</span></div>
+        <div class="step"><span class="step-num">5</span><span class="step-txt"><strong>Reset Demo</strong> â€” restart all servers and repeat from step 1</span></div>
+      </div>
     </div>
 
   </div>
@@ -434,30 +717,19 @@
 
 <footer>
   <div class="container">
-    <a href="/docs">API Docs</a> · <a href="/health">Health</a> ·
-    Network Traffic Monitor — local loopback demonstration only
+    <a href="/docs">API Docs</a> Â· <a href="/health">Health</a> Â·
+    Network Traffic Monitor â€” local loopback demonstration only â€” not WAN bandwidth
   </div>
 </footer>
 
-<!-- ── JavaScript ─────────────────────────────────────────────────────── -->
+<!-- â”€â”€ JavaScript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <script>
   'use strict';
 
-  let cycleCount = 0;
+  let cycleCount   = 0;
+  let primaryFailed = false;
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-
-  function fmt(val, suffix, decimals = 1) {
-    if (val === null || val === undefined) return null;
-    return Number(val).toFixed(decimals) + ' ' + suffix;
-  }
-
-  function scoreClass(score, available) {
-    if (!available) return 'bad';
-    if (score >= 60) return 'good';
-    if (score >= 35) return 'warn';
-    return 'bad';
-  }
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function scoreColor(score, available) {
     if (!available) return 'var(--red)';
@@ -467,7 +739,7 @@
   }
 
   function lossClass(loss) {
-    if (loss === null) return 'null';
+    if (loss === null || loss === undefined) return 'null';
     if (loss === 0) return 'good';
     if (loss < 50) return 'warn';
     return 'bad';
@@ -485,15 +757,42 @@
 
   function eventLabel(event) {
     const map = {
-      'initial_selection': '🟢 INITIAL SELECTION',
-      'no_change':         '🔵 NO CHANGE',
-      'failover':          '🟡 FAILOVER',
-      'no_available_path': '🔴 NO AVAILABLE PATH',
+      'initial_selection': 'ðŸŸ¢ INITIAL SELECTION',
+      'no_change':         'ðŸ”µ NO CHANGE',
+      'failover':          'ðŸŸ¡ FAILOVER',
+      'no_available_path': 'ðŸ”´ NO AVAILABLE PATH',
     };
     return map[event] || event.toUpperCase();
   }
 
-  // ── Render functions ──────────────────────────────────────────────────
+  function setButtonsBusy(busy) {
+    document.getElementById('run-btn').disabled   = busy;
+    document.getElementById('fail-btn').disabled  = busy;
+    document.getElementById('reset-btn').disabled = busy;
+  }
+
+  function updateDemoStage(failed) {
+    primaryFailed = failed;
+    const el    = document.getElementById('demo-stage');
+    const text  = document.getElementById('stage-text');
+    const hint  = document.getElementById('stage-hint');
+    const lbl   = document.getElementById('controls-label');
+    el.style.display = 'flex';
+    lbl.style.display = 'flex';
+    if (failed) {
+      el.className = 'failure';
+      text.textContent = 'PRIMARY FAILURE ACTIVE';
+      hint.textContent = 'â†³ Run a cycle to observe FAILOVER';
+      document.getElementById('fail-btn').disabled = true;
+    } else {
+      el.className = 'healthy';
+      text.textContent = 'HEALTHY';
+      hint.textContent = '';
+      document.getElementById('fail-btn').disabled = false;
+    }
+  }
+
+  // â”€â”€ Render functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function renderStatusBanner(data) {
     const banner = document.getElementById('status-banner');
@@ -509,7 +808,7 @@
       detail = `Preferred: ${data.preferred_path.toUpperCase()}`;
     }
     if (data.event === 'failover' && data.previous_path) {
-      detail = `${data.previous_path.toUpperCase()} → ${(data.preferred_path || '?').toUpperCase()}`;
+      detail = `${data.previous_path.toUpperCase()} â†’ ${(data.preferred_path || '?').toUpperCase()}`;
     }
     if (data.event === 'no_available_path') {
       detail = 'All paths are currently unreachable';
@@ -517,50 +816,77 @@
     detEl.textContent = detail;
   }
 
-  function renderPreferredPanel(data) {
-    const panel = document.getElementById('preferred-panel');
+  function renderDecisionPanel(data) {
+    const panel = document.getElementById('decision-panel');
     panel.style.display = 'block';
 
-    const nameEl    = document.getElementById('pref-name');
-    const eventEl   = document.getElementById('pref-event');
-    const transItem = document.getElementById('pref-transition-item');
-    const transEl   = document.getElementById('pref-transition');
-    const prevItem  = document.getElementById('pref-prev-item');
-    const prevEl    = document.getElementById('pref-prev');
+    const cls = eventClass(data.event);
 
-    if (data.preferred_path) {
-      nameEl.textContent = data.preferred_path.toUpperCase();
-      nameEl.className = 'preferred-name';
+    // Panel border highlight on failover
+    if (data.event === 'failover') {
+      panel.classList.add('failover-active');
     } else {
-      nameEl.textContent = 'NONE';
-      nameEl.className = 'preferred-name none';
+      panel.classList.remove('failover-active');
     }
 
-    const cls = eventClass(data.event);
-    eventEl.textContent = data.event.toUpperCase().replace(/_/g, ' ');
-    eventEl.className = 'meta-val ' + cls;
+    // Event badge
+    const badge = document.getElementById('decision-badge');
+    badge.className = 'decision-event-badge ' + cls;
+    badge.textContent = data.event.toUpperCase().replace(/_/g, ' ');
+
+    // Preferred path name
+    const prefName = document.getElementById('decision-pref-name');
+    if (data.preferred_path) {
+      prefName.textContent = data.preferred_path.toUpperCase();
+      prefName.className = 'decision-pref-name';
+    } else {
+      prefName.textContent = 'NONE';
+      prefName.className = 'decision-pref-name none';
+    }
 
     // Transition arrow (FAILOVER only)
+    const trans = document.getElementById('decision-transition');
     if (data.event === 'failover' && data.previous_path && data.preferred_path) {
-      transItem.style.display = 'flex';
-      transEl.textContent = `${data.previous_path.toUpperCase()} → ${data.preferred_path.toUpperCase()}`;
+      trans.classList.add('show');
+      document.getElementById('trans-from').textContent = data.previous_path.toUpperCase();
+      document.getElementById('trans-to').textContent   = data.preferred_path.toUpperCase();
     } else {
-      transItem.style.display = 'none';
+      trans.classList.remove('show');
     }
 
-    // Previous path (NO_CHANGE)
-    if (data.event === 'no_change' && data.previous_path) {
-      prevItem.style.display = 'flex';
-      prevEl.textContent = data.previous_path.toUpperCase();
-    } else {
-      prevItem.style.display = 'none';
-    }
+    // Score comparison rows
+    const sorted = Object.entries(data.paths).sort((a, b) => a[1].rank - b[1].rank);
+    const compEl = document.getElementById('score-comparison');
+    compEl.innerHTML = sorted.map(([name, m]) => {
+      const isPreferred  = name === data.preferred_path;
+      const isUnavail    = !m.available;
+      const color        = scoreColor(m.score, m.available);
+      const dotCls       = m.available ? 'ok' : 'bad';
+      const scorePct     = m.available ? m.score : 0;
+      const scoreStr     = m.available ? m.score.toFixed(1) : 'N/A';
+      const statusCls    = isPreferred ? 'selected' : isUnavail ? 'unavail' : 'standby';
+      const statusTxt    = isPreferred ? 'â˜… Selected' : isUnavail ? 'âœ— Unavailable' : 'Standby';
+      return `
+        <div class="score-row">
+          <div class="score-row-name">
+            <span class="mini-dot ${dotCls}"></span>
+            ${name.toUpperCase()}
+          </div>
+          <div class="score-row-bar-wrap">
+            <div class="score-row-bar-track">
+              <div class="score-row-bar-fill" style="width:${scorePct}%;background:${color}"></div>
+            </div>
+          </div>
+          <div class="score-row-num" style="color:${color}">${scoreStr}</div>
+          <div class="score-row-status ${statusCls}">${statusTxt}</div>
+        </div>`;
+    }).join('');
   }
 
   function metricEl(label, value, unit, cssClass, decimals = 1) {
-    const valStr = value !== null && value !== undefined
+    const valStr  = value !== null && value !== undefined
       ? Number(value).toFixed(decimals) + ' ' + unit
-      : '—';
+      : 'â€”';
     const valClass = (value === null || value === undefined) ? 'null' : (cssClass || '');
     return `
       <div class="metric">
@@ -570,19 +896,31 @@
   }
 
   function renderPathCard(name, metrics, preferred) {
-    const isPreferred  = preferred === name;
+    const isPreferred   = preferred === name;
     const isUnavailable = !metrics.available;
-    const cardClass = isPreferred ? 'path-card preferred' : isUnavailable ? 'path-card unavailable' : 'path-card';
+    const cardClass = isPreferred  ? 'path-card preferred'
+                    : isUnavailable ? 'path-card unavailable'
+                    : 'path-card';
 
-    const rttClass    = metrics.rtt_ms !== null ? (metrics.rtt_ms < 5 ? 'good' : metrics.rtt_ms < 50 ? 'warn' : 'bad') : 'null';
-    const lossClsVal  = lossClass(metrics.loss_percent);
-    const scoreNum    = metrics.available ? metrics.score.toFixed(1) : 'N/A';
-    const scorePct    = metrics.available ? metrics.score : 0;
-    const scoreClr    = scoreColor(metrics.score, metrics.available);
+    const rttClass   = metrics.rtt_ms !== null ? (metrics.rtt_ms < 5 ? 'good' : metrics.rtt_ms < 50 ? 'warn' : 'bad') : 'null';
+    const lossClsVal = lossClass(metrics.loss_percent);
+    const scoreNum   = metrics.available ? metrics.score.toFixed(1) : 'N/A';
+    const scorePct   = metrics.available ? metrics.score : 0;
+    const scoreClr   = scoreColor(metrics.score, metrics.available);
+
+    // Badge: preferred star or 100% LOSS chip
+    let badgeHtml = '';
+    if (isPreferred) {
+      badgeHtml = '<div class="preferred-star">â˜… Preferred</div>';
+    } else if (isUnavailable && metrics.loss_percent !== null && metrics.loss_percent >= 100) {
+      badgeHtml = '<div class="loss-badge">100% LOSS</div>';
+    } else if (isUnavailable) {
+      badgeHtml = '<div class="loss-badge">UNAVAILABLE</div>';
+    }
 
     return `
     <div class="${cardClass}" id="card-${name}">
-      ${isPreferred ? '<div class="preferred-star">★ Preferred</div>' : ''}
+      ${badgeHtml}
       <div class="card-name">${name}</div>
       <div class="card-avail ${metrics.available ? 'ok' : 'bad'}">
         <span class="avail-dot ${metrics.available ? 'ok' : 'bad'}"></span>
@@ -612,57 +950,115 @@
     const label = document.getElementById('paths-section-label');
     label.style.display = 'flex';
 
-    // Sort by rank
     const sorted = Object.entries(data.paths).sort((a, b) => a[1].rank - b[1].rank);
     grid.innerHTML = sorted
       .map(([name, metrics]) => renderPathCard(name, metrics, data.preferred_path))
       .join('');
   }
 
-  // ── Main cycle function ───────────────────────────────────────────────
+  // â”€â”€ Main cycle function â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function runCycle() {
     const btn      = document.getElementById('run-btn');
     const errDiv   = document.getElementById('error-msg');
     const emptyDiv = document.getElementById('empty-state');
 
-    // Show loading state
-    btn.disabled = true;
-    btn.innerHTML = `<div class="spinner"></div> Monitoring…`;
+    setButtonsBusy(true);
+    btn.innerHTML = `<div class="spinner"></div> Monitoringâ€¦`;
     errDiv.style.display = 'none';
 
     try {
       const resp = await fetch('/api/v1/monitor');
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
       const data = await resp.json();
 
-      // Hide empty state on first result
       emptyDiv.style.display = 'none';
 
-      // Update cycle counter
       cycleCount++;
       const counterEl = document.getElementById('cycle-counter');
-      const numEl     = document.getElementById('cycle-num');
       counterEl.style.display = 'block';
-      numEl.textContent = cycleCount;
+      document.getElementById('cycle-num').textContent = cycleCount;
 
-      // Render all panels
       renderStatusBanner(data);
-      renderPreferredPanel(data);
+      renderDecisionPanel(data);
       renderPaths(data);
+      updateDemoStage(data.primary_failed);
 
     } catch (err) {
       errDiv.style.display = 'block';
-      errDiv.textContent = '⚠ Error: ' + err.message;
+      errDiv.textContent = 'âš  Error: ' + err.message;
     } finally {
-      btn.disabled = false;
+      setButtonsBusy(false);
+      // Re-disable fail-btn if primary is already failed
+      if (primaryFailed) document.getElementById('fail-btn').disabled = true;
       btn.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5,3 19,12 5,21"/>
         </svg>
         Run Monitoring Cycle`;
+    }
+  }
+
+  // â”€â”€ Simulate failure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async function simulateFailure() {
+    const btn    = document.getElementById('fail-btn');
+    const errDiv = document.getElementById('error-msg');
+
+    setButtonsBusy(true);
+    btn.innerHTML = `<div class="spinner-muted"></div> Stopping primaryâ€¦`;
+    errDiv.style.display = 'none';
+
+    try {
+      const resp = await fetch('/api/v1/demo/simulate-failure', { method: 'POST' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+      const data = await resp.json();
+      updateDemoStage(data.primary_failed);
+    } catch (err) {
+      errDiv.style.display = 'block';
+      errDiv.textContent = 'âš  Error: ' + err.message;
+    } finally {
+      setButtonsBusy(false);
+      // Keep fail-btn disabled after triggering failure
+      if (primaryFailed) document.getElementById('fail-btn').disabled = true;
+      btn.innerHTML = `âš¡ Simulate Primary Failure`;
+    }
+  }
+
+  // â”€â”€ Reset demo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async function resetDemo() {
+    const btn      = document.getElementById('reset-btn');
+    const errDiv   = document.getElementById('error-msg');
+    const emptyDiv = document.getElementById('empty-state');
+
+    setButtonsBusy(true);
+    btn.innerHTML = `<div class="spinner-muted"></div> Resettingâ€¦`;
+    errDiv.style.display = 'none';
+
+    try {
+      const resp = await fetch('/api/v1/demo/reset', { method: 'POST' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+      const data = await resp.json();
+
+      // Reset UI to initial state
+      cycleCount = 0;
+      document.getElementById('cycle-counter').style.display = 'none';
+      document.getElementById('cycle-num').textContent = '0';
+      document.getElementById('status-banner').style.display = 'none';
+      document.getElementById('decision-panel').style.display = 'none';
+      document.getElementById('paths-section-label').style.display = 'none';
+      document.getElementById('paths-grid').innerHTML = '';
+      emptyDiv.style.display = 'block';
+      updateDemoStage(data.primary_failed);
+
+    } catch (err) {
+      errDiv.style.display = 'block';
+      errDiv.textContent = 'âš  Error: ' + err.message;
+    } finally {
+      setButtonsBusy(false);
+      if (primaryFailed) document.getElementById('fail-btn').disabled = true;
+      btn.innerHTML = `â†º Reset Demo`;
     }
   }
 </script>

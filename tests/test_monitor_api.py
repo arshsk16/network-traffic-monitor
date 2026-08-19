@@ -426,3 +426,168 @@ class TestFailoverRepresentation:
             assert resp2.preferred_path == r1.preferred_path_name
         finally:
             srv.stop()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Part 8: Demo control endpoints — POST /api/v1/demo/simulate-failure and reset
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDemoControls:
+    """
+    Tests for the two demo-control endpoints.
+
+    These tests use the session-scoped client for HTTP contract checks
+    (status codes, response shape), and isolated direct calls for
+    behavioural checks so they do not corrupt the shared app.state
+    that other tests depend on.
+    """
+
+    # ── HTTP contract ──────────────────────────────────────────────────────────
+
+    def test_simulate_failure_returns_200(self, client: TestClient) -> None:
+        resp = client.post("/api/v1/demo/simulate-failure")
+        assert resp.status_code == 200
+
+    def test_reset_returns_200(self, client: TestClient) -> None:
+        resp = client.post("/api/v1/demo/reset")
+        assert resp.status_code == 200
+
+    def test_simulate_failure_response_has_ok(self, client: TestClient) -> None:
+        body = client.post("/api/v1/demo/simulate-failure").json()
+        assert "ok" in body
+        assert body["ok"] is True
+
+    def test_reset_response_has_ok(self, client: TestClient) -> None:
+        body = client.post("/api/v1/demo/reset").json()
+        assert "ok" in body
+        assert body["ok"] is True
+
+    def test_simulate_failure_response_has_message(self, client: TestClient) -> None:
+        body = client.post("/api/v1/demo/simulate-failure").json()
+        assert "message" in body
+        assert len(body["message"]) > 0
+
+    def test_reset_response_has_message(self, client: TestClient) -> None:
+        body = client.post("/api/v1/demo/reset").json()
+        assert "message" in body
+        assert len(body["message"]) > 0
+
+    def test_simulate_failure_sets_primary_failed_true(self, client: TestClient) -> None:
+        """simulate-failure must report primary_failed=true in its response."""
+        body = client.post("/api/v1/demo/simulate-failure").json()
+        assert body["primary_failed"] is True
+
+    def test_reset_sets_primary_failed_false(self, client: TestClient) -> None:
+        """reset must report primary_failed=false in its response."""
+        body = client.post("/api/v1/demo/reset").json()
+        assert body["primary_failed"] is False
+
+    # ── Monitor response includes primary_failed field ─────────────────────────
+
+    def test_monitor_response_has_primary_failed_field(self, client: TestClient) -> None:
+        """GET /api/v1/monitor must include primary_failed in its response."""
+        # Ensure we are in a known state first
+        client.post("/api/v1/demo/reset")
+        body = client.get("/api/v1/monitor").json()
+        assert "primary_failed" in body
+        assert isinstance(body["primary_failed"], bool)
+
+    def test_monitor_primary_failed_false_after_reset(self, client: TestClient) -> None:
+        """primary_failed must be False in monitor response after a reset."""
+        client.post("/api/v1/demo/reset")
+        body = client.get("/api/v1/monitor").json()
+        assert body["primary_failed"] is False
+
+    # ── Behavioural: isolated servers + PathState ──────────────────────────────
+
+    def test_reset_allows_initial_selection_again(self) -> None:
+        """
+        After simulate-failure + reset via isolated servers, the monitor
+        cycle must produce INITIAL_SELECTION (not NO_CHANGE or FAILOVER).
+
+        Uses direct cycle calls with isolated _DemoServer objects so the
+        shared app.state is not touched.
+        """
+        import asyncio
+
+        # Simulate what the endpoints do, but on isolated objects so we
+        # don't affect the shared session state.
+        srv_primary = _DemoServer("iso-primary")
+        srv_backup  = _DemoServer("iso-backup")
+        srv_primary.start()
+        srv_backup.start()
+        state = PathState()
+
+        try:
+            # Cycle 1: primary-ONLY path → INITIAL_SELECTION, primary preferred
+            r1 = asyncio.run(run_monitoring_cycle(
+                [srv_primary.path], state, **_FAST
+            ))
+            assert r1.transition.event_type.value == "initial_selection"
+            assert r1.preferred_path_name == "iso-primary"
+
+            # Simulate failure: stop primary
+            srv_primary.stop()
+
+            # Cycle 2: dead primary + alive backup → FAILOVER
+            # (previous preferred = iso-primary → now unavailable → switches to iso-backup)
+            r2 = asyncio.run(run_monitoring_cycle(
+                [_dead_path("iso-primary"), srv_backup.path], state,
+                probe_count=1, probe_timeout=0.3,
+                transfer_bytes=4096, throughput_timeout=0.3,
+            ))
+            assert r2.transition.event_type.value in ("failover", "no_available_path")
+
+            # Reset: restart primary, fresh PathState
+            srv_primary.start()
+            fresh_state = PathState()
+
+            # Cycle 3: reset → INITIAL_SELECTION (state is blank again)
+            r3 = asyncio.run(run_monitoring_cycle(
+                [srv_primary.path, srv_backup.path], fresh_state, **_FAST
+            ))
+            assert r3.transition.event_type.value == "initial_selection"
+
+        finally:
+            srv_primary.stop()
+            srv_backup.stop()
+
+    def test_simulate_failure_causes_unavailable_primary(self) -> None:
+        """
+        After stopping the primary server, a monitoring cycle must see
+        the primary path as unavailable (available=False).
+        """
+        import asyncio
+
+        srv_primary = _DemoServer("fail-primary")
+        srv_backup  = _DemoServer("fail-backup")
+        srv_primary.start()
+        srv_backup.start()
+        state = PathState()
+
+        try:
+            # Establish initial selection
+            asyncio.run(run_monitoring_cycle(
+                [srv_primary.path, srv_backup.path], state, **_FAST
+            ))
+
+            # Capture the old path before stopping (connection will be refused)
+            dead_primary = _dead_path("fail-primary")
+            srv_primary.stop()
+
+            # Run cycle with dead primary
+            result = asyncio.run(run_monitoring_cycle(
+                [dead_primary, srv_backup.path], state,
+                probe_count=1, probe_timeout=0.3,
+                transfer_bytes=4096, throughput_timeout=0.3,
+            ))
+            resp = _cycle_result_to_response(result)
+
+            # Primary must be unavailable
+            assert resp.paths["fail-primary"].available is False
+
+        finally:
+            srv_primary.stop()
+            srv_backup.stop()
+
