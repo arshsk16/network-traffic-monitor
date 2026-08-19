@@ -10,7 +10,7 @@ Defines create_app() rather than a bare module-level `app` object so that:
 from fastapi import FastAPI
 
 from app.config import settings
-from app.routers import health
+from app.routers import dashboard, health, monitor
 
 
 def create_app() -> FastAPI:
@@ -28,9 +28,9 @@ def create_app() -> FastAPI:
     )
 
     # ── Routers ───────────────────────────────────────────────────────────────
-    # Each router handles one resource group. Add new routers here as the
-    # project grows (e.g. /paths, /metrics, /select).
     app.include_router(health.router)
+    app.include_router(monitor.router)
+    app.include_router(dashboard.router)
 
     return app
 

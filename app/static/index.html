@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Network Traffic Monitor — SD-WAN Path Selection Demo</title>
+  <meta name="description" content="Local loopback SD-WAN path selection demonstration using application-level TCP measurements." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────────── */
+    :root {
+      --bg:            #0d1117;
+      --surface:       #161b22;
+      --surface2:      #1c2230;
+      --border:        #30363d;
+      --border-subtle: #21262d;
+      --text:          #e6edf3;
+      --text-muted:    #8b949e;
+      --text-dim:      #484f58;
+      --accent:        #58a6ff;
+      --accent-glow:   rgba(88,166,255,0.15);
+      --green:         #3fb950;
+      --green-dim:     rgba(63,185,80,0.12);
+      --yellow:        #e3b341;
+      --yellow-dim:    rgba(227,179,65,0.12);
+      --red:           #f85149;
+      --red-dim:       rgba(248,81,73,0.12);
+      --radius:        12px;
+      --radius-sm:     8px;
+    }
+
+    /* ── Reset & base ───────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 0 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, rgba(88,166,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--green-dim);
+      border: 1px solid rgba(63,185,80,0.25);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .header-badge::before { content: '●'; font-size: 8px; }
+    h1 {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    h1 span { color: var(--accent); }
+    .header-sub {
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .demo-notice {
+      margin-top: 16px;
+      background: rgba(88,166,255,0.07);
+      border: 1px solid rgba(88,166,255,0.2);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      max-width: 680px;
+    }
+    .demo-notice strong { color: var(--accent); }
+
+    /* ── Main content ───────────────────────────────────────────────── */
+    main { padding: 40px 0 80px; }
+
+    /* ── Section headings ────────────────────────────────────────────── */
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* ── Run button ─────────────────────────────────────────────────── */
+    .controls { margin-bottom: 40px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    #run-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px 24px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+    #run-btn:hover { opacity: 0.9; box-shadow: 0 0 20px var(--accent-glow); }
+    #run-btn:active { transform: scale(0.97); }
+    #run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    #run-btn svg { width: 16px; height: 16px; }
+
+    /* spinner inside button */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(13,17,23,0.3);
+      border-top-color: #0d1117;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .cycle-counter {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cycle-counter span { color: var(--accent); font-weight: 600; }
+
+    /* ── Status banner ───────────────────────────────────────────────── */
+    #status-banner {
+      display: none;
+      margin-bottom: 32px;
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      border: 1px solid;
+      animation: fadeIn 0.3s ease;
+    }
+    #status-banner.initial  { background: var(--green-dim);  border-color: rgba(63,185,80,0.3);  color: var(--green); }
+    #status-banner.nochange { background: rgba(88,166,255,0.07); border-color: rgba(88,166,255,0.2); color: var(--accent); }
+    #status-banner.failover { background: var(--yellow-dim); border-color: rgba(227,179,65,0.3); color: var(--yellow); }
+    #status-banner.nopaths  { background: var(--red-dim);    border-color: rgba(248,81,73,0.3);   color: var(--red); }
+
+    .banner-event { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+    .banner-detail { opacity: 0.85; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+
+    /* ── Preferred path panel ─────────────────────────────────────────── */
+    #preferred-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .preferred-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+    .preferred-name { font-size: 2rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; text-transform: uppercase; }
+    .preferred-name.none { color: var(--red); }
+    .preferred-meta { margin-top: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
+    .meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .meta-key { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+    .meta-val { font-size: 0.9rem; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+    .meta-val.initial  { color: var(--green); }
+    .meta-val.nochange { color: var(--accent); }
+    .meta-val.failover { color: var(--yellow); }
+    .meta-val.nopaths  { color: var(--red); }
+    .arrow { font-size: 1.1rem; }
+
+    /* ── Path cards ──────────────────────────────────────────────────── */
+    #paths-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .path-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      animation: fadeIn 0.35s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .path-card.preferred {
+      border-color: rgba(63,185,80,0.4);
+      box-shadow: 0 0 0 1px rgba(63,185,80,0.1), inset 0 0 40px rgba(63,185,80,0.03);
+    }
+    .path-card.unavailable {
+      border-color: rgba(248,81,73,0.25);
+      background: rgba(248,81,73,0.02);
+    }
+    .preferred-star {
+      position: absolute;
+      top: 16px; right: 16px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--green-dim);
+      border: 1px solid rgba(63,185,80,0.3);
+      color: var(--green);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .card-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .card-avail {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .card-avail.ok  { color: var(--green); }
+    .card-avail.bad { color: var(--red); }
+    .avail-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .avail-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
+    .avail-dot.bad { background: var(--red); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .metric { display: flex; flex-direction: column; gap: 3px; }
+    .metric-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .metric-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+    }
+    .metric-value.null { color: var(--text-dim); font-style: italic; font-size: 0.85rem; }
+    .metric-value.good { color: var(--green); }
+    .metric-value.warn { color: var(--yellow); }
+    .metric-value.bad  { color: var(--red); }
+
+    /* Score bar */
+    .score-bar-wrap { margin-top: 20px; }
+    .score-bar-label { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .score-bar-label .score-title { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+    .score-bar-label .score-num { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; }
+    .score-bar-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ── Empty state ────────────────────────────────────────────────── */
+    #empty-state {
+      text-align: center;
+      padding: 80px 24px;
+      color: var(--text-muted);
+    }
+    #empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+    #empty-state h3 { font-size: 1.1rem; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+    #empty-state p { font-size: 0.88rem; }
+
+    /* ── Error state ────────────────────────────────────────────────── */
+    #error-msg {
+      display: none;
+      background: var(--red-dim);
+      border: 1px solid rgba(248,81,73,0.3);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      color: var(--red);
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 24px 0;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Animations ─────────────────────────────────────────────────── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header>
+  <div class="container">
+    <div class="header-badge">Local Loopback Demo</div>
+    <h1>Network Traffic <span>Monitor</span></h1>
+    <p class="header-sub">SD-WAN Path Selection · Python 3.12 · Powered by application-level TCP probing</p>
+    <div class="demo-notice">
+      <strong>⚠ Demo environment:</strong>
+      All paths are local loopback (127.0.0.1). Throughput figures are
+      application-level TCP throughput in the local test environment —
+      <strong>not WAN or Internet bandwidth</strong>. Path selection logic
+      is identical to a production system; only the destinations differ.
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ───────────────────────────────────────────────────────────── -->
+<main>
+  <div class="container">
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="run-btn" onclick="runCycle()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+        Run Monitoring Cycle
+      </button>
+      <div class="cycle-counter" id="cycle-counter" style="display:none">
+        Cycle <span id="cycle-num">0</span>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-msg"></div>
+
+    <!-- Status banner -->
+    <div id="status-banner">
+      <div class="banner-event" id="banner-event"></div>
+      <div class="banner-detail" id="banner-detail"></div>
+    </div>
+
+    <!-- Preferred path panel -->
+    <div id="preferred-panel">
+      <div class="preferred-label">Currently Preferred Path</div>
+      <div class="preferred-name" id="pref-name">—</div>
+      <div class="preferred-meta">
+        <div class="meta-item">
+          <div class="meta-key">Event</div>
+          <div class="meta-val" id="pref-event">—</div>
+        </div>
+        <div class="meta-item" id="pref-transition-item" style="display:none">
+          <div class="meta-key">Transition</div>
+          <div class="meta-val arrow" id="pref-transition">—</div>
+        </div>
+        <div class="meta-item" id="pref-prev-item" style="display:none">
+          <div class="meta-key">Previous</div>
+          <div class="meta-val" id="pref-prev" style="color:var(--text-muted)">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Path cards -->
+    <div class="section-label" id="paths-section-label" style="display:none">Monitored Paths</div>
+    <div id="paths-grid"></div>
+
+    <!-- Empty state -->
+    <div id="empty-state">
+      <div class="empty-icon">📡</div>
+      <h3>No monitoring data yet</h3>
+      <p>Click <strong>Run Monitoring Cycle</strong> to probe the demo paths and visualize the results.</p>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <a href="/docs">API Docs</a> · <a href="/health">Health</a> ·
+    Network Traffic Monitor — local loopback demonstration only
+  </div>
+</footer>
+
+<!-- ── JavaScript ─────────────────────────────────────────────────────── -->
+<script>
+  'use strict';
+
+  let cycleCount = 0;
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+
+  function fmt(val, suffix, decimals = 1) {
+    if (val === null || val === undefined) return null;
+    return Number(val).toFixed(decimals) + ' ' + suffix;
+  }
+
+  function scoreClass(score, available) {
+    if (!available) return 'bad';
+    if (score >= 60) return 'good';
+    if (score >= 35) return 'warn';
+    return 'bad';
+  }
+
+  function scoreColor(score, available) {
+    if (!available) return 'var(--red)';
+    if (score >= 60) return 'var(--green)';
+    if (score >= 35) return 'var(--yellow)';
+    return 'var(--red)';
+  }
+
+  function lossClass(loss) {
+    if (loss === null) return 'null';
+    if (loss === 0) return 'good';
+    if (loss < 50) return 'warn';
+    return 'bad';
+  }
+
+  function eventClass(event) {
+    const map = {
+      'initial_selection': 'initial',
+      'no_change':         'nochange',
+      'failover':          'failover',
+      'no_available_path': 'nopaths',
+    };
+    return map[event] || 'nochange';
+  }
+
+  function eventLabel(event) {
+    const map = {
+      'initial_selection': '🟢 INITIAL SELECTION',
+      'no_change':         '🔵 NO CHANGE',
+      'failover':          '🟡 FAILOVER',
+      'no_available_path': '🔴 NO AVAILABLE PATH',
+    };
+    return map[event] || event.toUpperCase();
+  }
+
+  // ── Render functions ──────────────────────────────────────────────────
+
+  function renderStatusBanner(data) {
+    const banner = document.getElementById('status-banner');
+    const evEl   = document.getElementById('banner-event');
+    const detEl  = document.getElementById('banner-detail');
+
+    banner.className = eventClass(data.event);
+    banner.style.display = 'block';
+    evEl.textContent = eventLabel(data.event);
+
+    let detail = '';
+    if (data.preferred_path) {
+      detail = `Preferred: ${data.preferred_path.toUpperCase()}`;
+    }
+    if (data.event === 'failover' && data.previous_path) {
+      detail = `${data.previous_path.toUpperCase()} → ${(data.preferred_path || '?').toUpperCase()}`;
+    }
+    if (data.event === 'no_available_path') {
+      detail = 'All paths are currently unreachable';
+    }
+    detEl.textContent = detail;
+  }
+
+  function renderPreferredPanel(data) {
+    const panel = document.getElementById('preferred-panel');
+    panel.style.display = 'block';
+
+    const nameEl    = document.getElementById('pref-name');
+    const eventEl   = document.getElementById('pref-event');
+    const transItem = document.getElementById('pref-transition-item');
+    const transEl   = document.getElementById('pref-transition');
+    const prevItem  = document.getElementById('pref-prev-item');
+    const prevEl    = document.getElementById('pref-prev');
+
+    if (data.preferred_path) {
+      nameEl.textContent = data.preferred_path.toUpperCase();
+      nameEl.className = 'preferred-name';
+    } else {
+      nameEl.textContent = 'NONE';
+      nameEl.className = 'preferred-name none';
+    }
+
+    const cls = eventClass(data.event);
+    eventEl.textContent = data.event.toUpperCase().replace(/_/g, ' ');
+    eventEl.className = 'meta-val ' + cls;
+
+    // Transition arrow (FAILOVER only)
+    if (data.event === 'failover' && data.previous_path && data.preferred_path) {
+      transItem.style.display = 'flex';
+      transEl.textContent = `${data.previous_path.toUpperCase()} → ${data.preferred_path.toUpperCase()}`;
+    } else {
+      transItem.style.display = 'none';
+    }
+
+    // Previous path (NO_CHANGE)
+    if (data.event === 'no_change' && data.previous_path) {
+      prevItem.style.display = 'flex';
+      prevEl.textContent = data.previous_path.toUpperCase();
+    } else {
+      prevItem.style.display = 'none';
+    }
+  }
+
+  function metricEl(label, value, unit, cssClass, decimals = 1) {
+    const valStr = value !== null && value !== undefined
+      ? Number(value).toFixed(decimals) + ' ' + unit
+      : '—';
+    const valClass = (value === null || value === undefined) ? 'null' : (cssClass || '');
+    return `
+      <div class="metric">
+        <div class="metric-label">${label}</div>
+        <div class="metric-value ${valClass}">${valStr}</div>
+      </div>`;
+  }
+
+  function renderPathCard(name, metrics, preferred) {
+    const isPreferred  = preferred === name;
+    const isUnavailable = !metrics.available;
+    const cardClass = isPreferred ? 'path-card preferred' : isUnavailable ? 'path-card unavailable' : 'path-card';
+
+    const rttClass    = metrics.rtt_ms !== null ? (metrics.rtt_ms < 5 ? 'good' : metrics.rtt_ms < 50 ? 'warn' : 'bad') : 'null';
+    const lossClsVal  = lossClass(metrics.loss_percent);
+    const scoreNum    = metrics.available ? metrics.score.toFixed(1) : 'N/A';
+    const scorePct    = metrics.available ? metrics.score : 0;
+    const scoreClr    = scoreColor(metrics.score, metrics.available);
+
+    return `
+    <div class="${cardClass}" id="card-${name}">
+      ${isPreferred ? '<div class="preferred-star">★ Preferred</div>' : ''}
+      <div class="card-name">${name}</div>
+      <div class="card-avail ${metrics.available ? 'ok' : 'bad'}">
+        <span class="avail-dot ${metrics.available ? 'ok' : 'bad'}"></span>
+        ${metrics.available ? 'Available' : 'Unavailable'}
+      </div>
+      <div class="metrics-grid">
+        ${metricEl('RTT', metrics.rtt_ms, 'ms', rttClass, 2)}
+        ${metricEl('Loss', metrics.loss_percent, '%', lossClsVal, 1)}
+        ${metricEl('Jitter', metrics.jitter_ms, 'ms', '', 2)}
+        ${metricEl('Throughput', metrics.throughput_mbps, 'Mbps', 'good', 1)}
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label">
+          <span class="score-title">Score</span>
+          <span class="score-num" style="color:${scoreClr}">${scoreNum}</span>
+        </div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill"
+               style="width:${scorePct}%; background:${scoreClr}"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderPaths(data) {
+    const grid  = document.getElementById('paths-grid');
+    const label = document.getElementById('paths-section-label');
+    label.style.display = 'flex';
+
+    // Sort by rank
+    const sorted = Object.entries(data.paths).sort((a, b) => a[1].rank - b[1].rank);
+    grid.innerHTML = sorted
+      .map(([name, metrics]) => renderPathCard(name, metrics, data.preferred_path))
+      .join('');
+  }
+
+  // ── Main cycle function ───────────────────────────────────────────────
+
+  async function runCycle() {
+    const btn      = document.getElementById('run-btn');
+    const errDiv   = document.getElementById('error-msg');
+    const emptyDiv = document.getElementById('empty-state');
+
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner"></div> Monitoring…`;
+    errDiv.style.display = 'none';
+
+    try {
+      const resp = await fetch('/api/v1/monitor');
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+      }
+      const data = await resp.json();
+
+      // Hide empty state on first result
+      emptyDiv.style.display = 'none';
+
+      // Update cycle counter
+      cycleCount++;
+      const counterEl = document.getElementById('cycle-counter');
+      const numEl     = document.getElementById('cycle-num');
+      counterEl.style.display = 'block';
+      numEl.textContent = cycleCount;
+
+      // Render all panels
+      renderStatusBanner(data);
+      renderPreferredPanel(data);
+      renderPaths(data);
+
+    } catch (err) {
+      errDiv.style.display = 'block';
+      errDiv.textContent = '⚠ Error: ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+        Run Monitoring Cycle`;
+    }
+  }
+</script>
+</body>
+</html>
