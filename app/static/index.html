@@ -3,35 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Network Traffic Monitor â€” SD-WAN Path Selection Demo</title>
-  <meta name="description" content="Local loopback SD-WAN path selection demonstration using application-level TCP measurements." />
+  <title>Network Traffic Monitor &mdash; SD-WAN Path Selection</title>
+  <meta name="description" content="SD-WAN path selection dashboard: real-time RTT, loss, jitter, throughput and automatic failover detection." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    /* â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ---- Design tokens -------------------------------------------------- */
     :root {
       --bg:            #0d1117;
       --surface:       #161b22;
       --surface2:      #1c2230;
       --border:        #30363d;
-      --border-subtle: #21262d;
+      --border-sub:    #21262d;
       --text:          #e6edf3;
-      --text-muted:    #8b949e;
-      --text-dim:      #484f58;
+      --muted:         #8b949e;
+      --dim:           #484f58;
       --accent:        #58a6ff;
-      --accent-glow:   rgba(88,166,255,0.15);
+      --accent-glow:   rgba(88,166,255,0.14);
       --green:         #3fb950;
-      --green-dim:     rgba(63,185,80,0.12);
+      --green-dim:     rgba(63,185,80,0.11);
       --yellow:        #e3b341;
-      --yellow-dim:    rgba(227,179,65,0.12);
+      --yellow-dim:    rgba(227,179,65,0.11);
       --red:           #f85149;
-      --red-dim:       rgba(248,81,73,0.12);
-      --radius:        12px;
-      --radius-sm:     8px;
+      --red-dim:       rgba(248,81,73,0.11);
+      --r:             12px;
+      --r-sm:          8px;
     }
 
-    /* â”€â”€ Reset & base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ---- Reset ----------------------------------------------------------- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; scroll-behavior: smooth; }
     body {
@@ -41,133 +41,384 @@
       min-height: 100vh;
       line-height: 1.6;
     }
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
-    /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-
-    /* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ---- Header ---------------------------------------------------------- */
     header {
-      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
       border-bottom: 1px solid var(--border);
-      padding: 40px 0 32px;
-      position: relative;
-      overflow: hidden;
+      padding: 28px 0 22px;
+      background: linear-gradient(180deg, #0d1117 0%, #111720 100%);
     }
-    header::before {
-      content: '';
-      position: absolute;
-      top: -80px; right: -80px;
-      width: 350px; height: 350px;
-      background: radial-gradient(circle, rgba(88,166,255,0.06) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .header-badge {
-      display: inline-flex;
+    .header-row {
+      display: flex;
       align-items: center;
-      gap: 6px;
-      background: var(--green-dim);
-      border: 1px solid rgba(63,185,80,0.25);
-      color: var(--green);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      padding: 3px 10px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
     }
-    .header-badge::before { content: 'â—'; font-size: 8px; }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .brand-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2.4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
     h1 {
-      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-size: 1.25rem;
       font-weight: 700;
+      letter-spacing: -0.01em;
       color: var(--text);
-      letter-spacing: -0.02em;
-      line-height: 1.2;
     }
-    h1 span { color: var(--accent); }
-    .header-sub {
-      margin-top: 8px;
-      color: var(--text-muted);
-      font-size: 0.95rem;
+    h1 em { color: var(--accent); font-style: normal; }
+    .header-meta {
+      font-size: 0.75rem;
+      color: var(--dim);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
-    .demo-notice {
-      margin-top: 16px;
-      background: rgba(88,166,255,0.07);
-      border: 1px solid rgba(88,166,255,0.2);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      max-width: 680px;
-    }
-    .demo-notice strong { color: var(--accent); }
+    .header-meta a { color: var(--accent); text-decoration: none; }
+    .header-meta a:hover { text-decoration: underline; }
 
-    /* â”€â”€ Main content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    main { padding: 40px 0 80px; }
-
-    /* â”€â”€ Section headings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .section-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 16px;
+    /* ---- Pipeline bar ---------------------------------------------------- */
+    .pipeline {
+      border-bottom: 1px solid var(--border-sub);
+      background: var(--surface);
+      padding: 12px 0;
+      overflow-x: auto;
+    }
+    .pipeline-inner {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      white-space: nowrap;
+    }
+    .pip-step {
       display: flex;
       align-items: center;
       gap: 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      padding: 4px 14px;
+    }
+    .pip-step:first-child { padding-left: 0; }
+    .pip-icon {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .pip-arrow {
+      color: var(--dim);
+      font-size: 0.8rem;
+      padding: 0 2px;
+    }
+
+    /* ---- Main ------------------------------------------------------------ */
+    main { padding: 32px 0 80px; }
+
+    /* ---- Section label --------------------------------------------------- */
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--dim);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
     }
     .section-label::after {
       content: '';
       flex: 1;
       height: 1px;
-      background: var(--border-subtle);
+      background: var(--border-sub);
     }
 
-    /* â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .controls {
-      margin-bottom: 32px;
+    /* ---- Preferred-path hero -------------------------------------------- */
+    .preferred-hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 22px 28px;
+      margin-bottom: 28px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      transition: border-color 0.35s;
+    }
+    .preferred-hero.pref-primary { border-color: rgba(63,185,80,0.35); }
+    .preferred-hero.pref-backup  { border-color: rgba(63,185,80,0.35); }
+    .preferred-hero.pref-none    { border-color: rgba(248,81,73,0.35); }
+
+    .hero-left { display: flex; flex-direction: column; gap: 4px; }
+    .hero-eyebrow {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .hero-path-name {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .hero-path-name.has-path { color: var(--green); }
+    .hero-path-name.no-path  { color: var(--dim); font-size: 1.4rem; letter-spacing: 0; }
+
+    .hero-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+
+    .hero-event-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .badge-init    { color: var(--green);  border-color: rgba(63,185,80,0.35);  background: var(--green-dim); }
+    .badge-stable  { color: var(--accent); border-color: rgba(88,166,255,0.25); background: rgba(88,166,255,0.08); }
+    .badge-failover{ color: var(--yellow); border-color: rgba(227,179,65,0.4);  background: var(--yellow-dim); }
+    .badge-nopaths { color: var(--red);    border-color: rgba(248,81,73,0.35);  background: var(--red-dim); }
+    .badge-idle    { color: var(--dim);    border-color: var(--border);         background: transparent; }
+
+    .hero-transition {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--yellow);
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-transition.show { display: flex; }
+    .tr-from { opacity: 0.65; text-transform: uppercase; }
+    .tr-to   { text-transform: uppercase; }
+
+    /* ---- Path cards grid ------------------------------------------------- */
+    .paths-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .path-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 22px 24px 20px;
+      transition: border-color 0.35s, box-shadow 0.35s, background 0.35s;
+      position: relative;
+    }
+    .path-card.state-preferred {
+      border-color: rgba(63,185,80,0.45);
+      box-shadow: 0 0 0 1px rgba(63,185,80,0.08), inset 0 0 50px rgba(63,185,80,0.03);
+    }
+    .path-card.state-unavailable {
+      border-color: rgba(248,81,73,0.45);
+      background: rgba(248,81,73,0.025);
+      box-shadow: 0 0 0 1px rgba(248,81,73,0.07);
+    }
+
+    /* Card header row */
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .card-role {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 4px;
+    }
+    .card-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .card-status-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .chip-preferred   { color: var(--green);  border-color: rgba(63,185,80,0.35);  background: var(--green-dim); }
+    .chip-available   { color: var(--muted);  border-color: var(--border);         background: transparent; }
+    .chip-unavailable { color: var(--red);    border-color: rgba(248,81,73,0.4);   background: var(--red-dim); }
+    .chip-idle        { color: var(--dim);    border-color: var(--border-sub);      background: transparent; }
+    .chip-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+    .chip-dot.ok  { background: var(--green); animation: pulse 2.4s ease-in-out infinite; }
+    .chip-dot.bad { background: var(--red); }
+    .chip-dot.off { background: var(--dim); }
+
+    /* Metrics grid */
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 18px;
+      margin-bottom: 18px;
+    }
+    .m-item { display: flex; flex-direction: column; gap: 3px; }
+    .m-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .m-val {
+      font-size: 1.05rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .m-val.idle   { color: var(--dim); font-size: 0.8rem; font-style: italic; font-family: inherit; }
+    .m-val.green  { color: var(--green); }
+    .m-val.yellow { color: var(--yellow); }
+    .m-val.red    { color: var(--red); }
+    .m-val.white  { color: var(--text); }
+
+    /* Score bar */
+    .score-wrap { }
+    .score-row  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .score-lbl  { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+    .score-num  { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; }
+    .score-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.7s cubic-bezier(0.34,1.56,0.64,1), background 0.35s;
+    }
+
+    /* Loss badge overlay */
+    .loss-badge {
+      position: absolute;
+      bottom: 20px; right: 20px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      background: var(--red-dim);
+      border: 1px solid rgba(248,81,73,0.35);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* ---- Last-event bar -------------------------------------------------- */
+    .event-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px 22px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+    .event-bar-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+    .event-bar-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .event-bar-note {
+      font-size: 0.75rem;
+      color: var(--dim);
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cycle-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(88,166,255,0.08);
+      border: 1px solid rgba(88,166,255,0.18);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 9px;
+      border-radius: 20px;
+    }
+
+    /* ---- Controls -------------------------------------------------------- */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
-    /* Primary run button */
     #run-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
+      display: inline-flex; align-items: center; gap: 8px;
       background: var(--accent);
       color: #0d1117;
       border: none;
-      border-radius: var(--radius-sm);
-      padding: 12px 22px;
+      border-radius: var(--r-sm);
+      padding: 11px 20px;
       font-family: inherit;
-      font-size: 0.88rem;
-      font-weight: 600;
+      font-size: 0.85rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
-      box-shadow: 0 0 0 0 var(--accent-glow);
+      transition: opacity 0.15s, box-shadow 0.2s, transform 0.1s;
       white-space: nowrap;
     }
-    #run-btn:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 0 20px var(--accent-glow); }
+    #run-btn:hover:not(:disabled) { opacity: 0.88; box-shadow: 0 0 22px var(--accent-glow); }
     #run-btn:active:not(:disabled) { transform: scale(0.97); }
     #run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    #run-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-    /* Failure simulation button */
     #fail-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
       background: transparent;
       color: var(--yellow);
-      border: 1px solid rgba(227,179,65,0.4);
-      border-radius: var(--radius-sm);
-      padding: 11px 18px;
+      border: 1px solid rgba(227,179,65,0.38);
+      border-radius: var(--r-sm);
+      padding: 10px 18px;
       font-family: inherit;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
@@ -175,892 +426,576 @@
     }
     #fail-btn:hover:not(:disabled) { background: var(--yellow-dim); border-color: rgba(227,179,65,0.6); }
     #fail-btn:active:not(:disabled) { transform: scale(0.97); }
-    #fail-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    #fail-btn:disabled { opacity: 0.32; cursor: not-allowed; }
 
-    /* Reset button */
     #reset-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
       background: transparent;
-      color: var(--text-muted);
+      color: var(--muted);
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 11px 18px;
+      border-radius: var(--r-sm);
+      padding: 10px 18px;
       font-family: inherit;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
       white-space: nowrap;
     }
-    #reset-btn:hover:not(:disabled) { background: var(--surface2); border-color: var(--text-dim); color: var(--text); }
+    #reset-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
     #reset-btn:active:not(:disabled) { transform: scale(0.97); }
-    #reset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    #reset-btn:disabled { opacity: 0.32; cursor: not-allowed; }
 
-    .cycle-counter {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .cycle-counter span { color: var(--accent); font-weight: 600; }
-
-    /* â”€â”€ Demo stage indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    #demo-stage {
+    .demo-stage-pill {
       display: none;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 28px;
-      padding: 10px 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-size: 0.78rem;
-      font-weight: 500;
-    }
-    #demo-stage .stage-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    #demo-stage .stage-label { color: var(--text-muted); margin-right: 4px; }
-    #demo-stage .stage-value { font-weight: 600; }
-    #demo-stage.healthy   .stage-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
-    #demo-stage.healthy   .stage-value { color: var(--green); }
-    #demo-stage.failure   .stage-dot { background: var(--yellow); }
-    #demo-stage.failure   .stage-value { color: var(--yellow); }
-    #demo-stage .stage-hint { color: var(--text-dim); margin-left: auto; font-size: 0.73rem; }
-
-    /* spinner inside button */
-    .spinner {
-      width: 15px; height: 15px;
-      border: 2px solid rgba(13,17,23,0.3);
-      border-top-color: #0d1117;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-    .spinner-muted {
-      width: 15px; height: 15px;
-      border: 2px solid rgba(255,255,255,0.1);
-      border-top-color: var(--text-muted);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* â”€â”€ Status banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    #status-banner {
-      display: none;
-      margin-bottom: 24px;
-      padding: 16px 20px;
-      border-radius: var(--radius);
-      font-size: 0.9rem;
-      border: 1px solid;
-      animation: fadeIn 0.3s ease;
-    }
-    #status-banner.initial  { background: var(--green-dim);  border-color: rgba(63,185,80,0.3);  color: var(--green); }
-    #status-banner.nochange { background: rgba(88,166,255,0.07); border-color: rgba(88,166,255,0.2); color: var(--accent); }
-    #status-banner.failover { background: var(--yellow-dim); border-color: rgba(227,179,65,0.3); color: var(--yellow); }
-    #status-banner.nopaths  { background: var(--red-dim);    border-color: rgba(248,81,73,0.3);   color: var(--red); }
-
-    .banner-event { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-    .banner-detail { opacity: 0.85; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
-
-    /* â”€â”€ PATH DECISION panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    #decision-panel {
-      display: none;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px 28px;
-      margin-bottom: 28px;
-      animation: fadeIn 0.3s ease;
-    }
-    #decision-panel.failover-active {
-      border-color: rgba(227,179,65,0.4);
-      box-shadow: 0 0 0 1px rgba(227,179,65,0.08), inset 0 0 40px rgba(227,179,65,0.02);
-    }
-
-    .decision-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .decision-title {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .decision-event-badge {
-      display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 6px 12px;
       border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
       border: 1px solid;
     }
-    .decision-event-badge.initial  { background: var(--green-dim);  border-color: rgba(63,185,80,0.3);  color: var(--green); }
-    .decision-event-badge.nochange { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.25); color: var(--accent); }
-    .decision-event-badge.failover { background: var(--yellow-dim); border-color: rgba(227,179,65,0.4); color: var(--yellow); }
-    .decision-event-badge.nopaths  { background: var(--red-dim);    border-color: rgba(248,81,73,0.3);   color: var(--red); }
+    .demo-stage-pill.healthy  { color: var(--green);  border-color: rgba(63,185,80,0.3);  background: var(--green-dim); }
+    .demo-stage-pill.failure  { color: var(--yellow); border-color: rgba(227,179,65,0.4); background: var(--yellow-dim); }
+    .pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .pill-dot.ok  { background: var(--green); animation: pulse 2.4s ease-in-out infinite; }
+    .pill-dot.bad { background: var(--yellow); }
 
-    /* Preferred path display */
-    .decision-preferred {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .decision-pref-label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      white-space: nowrap;
-    }
-    .decision-pref-name {
-      font-size: 1.8rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      text-transform: uppercase;
-      color: var(--green);
-      line-height: 1;
-    }
-    .decision-pref-name.none { color: var(--red); }
-
-    /* Transition arrow */
-    .decision-transition {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      padding: 10px 16px;
-      background: var(--yellow-dim);
-      border: 1px solid rgba(227,179,65,0.25);
-      border-radius: var(--radius-sm);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--yellow);
-    }
-    .decision-transition.show { display: flex; }
-    .transition-from { opacity: 0.7; text-transform: uppercase; }
-    .transition-arrow { font-size: 1.1rem; }
-    .transition-to { text-transform: uppercase; }
-
-    /* Score comparison table */
-    .score-comparison {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .score-row {
-      display: grid;
-      grid-template-columns: 90px 1fr 70px 80px;
-      align-items: center;
-      gap: 12px;
-    }
-    .score-row-name {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .score-row-name .mini-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .mini-dot.ok  { background: var(--green); box-shadow: 0 0 4px var(--green); animation: pulse 2s ease-in-out infinite; }
-    .mini-dot.bad { background: var(--red); }
-    .score-row-bar-wrap { position: relative; }
-    .score-row-bar-track {
-      height: 6px;
-      background: var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .score-row-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .score-row-num {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-align: right;
-    }
-    .score-row-status {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      text-align: right;
-    }
-    .score-row-status.selected { color: var(--green); }
-    .score-row-status.unavail  { color: var(--red); }
-    .score-row-status.standby  { color: var(--text-dim); }
-
-    /* â”€â”€ Error state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    #error-msg {
+    /* ---- Error ----------------------------------------------------------- */
+    #error-bar {
       display: none;
       background: var(--red-dim);
       border: 1px solid rgba(248,81,73,0.3);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
+      border-radius: var(--r-sm);
+      padding: 12px 18px;
       color: var(--red);
-      font-size: 0.85rem;
-      margin-bottom: 24px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* â”€â”€ Path cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    #paths-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 20px;
-    }
-    .path-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-      animation: fadeIn 0.35s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .path-card.preferred {
-      border-color: rgba(63,185,80,0.4);
-      box-shadow: 0 0 0 1px rgba(63,185,80,0.1), inset 0 0 40px rgba(63,185,80,0.03);
-    }
-    .path-card.unavailable {
-      border-color: rgba(248,81,73,0.4);
-      background: rgba(248,81,73,0.03);
-      box-shadow: 0 0 0 1px rgba(248,81,73,0.08), inset 0 0 40px rgba(248,81,73,0.02);
-    }
-    .preferred-star {
-      position: absolute;
-      top: 16px; right: 16px;
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: var(--green-dim);
-      border: 1px solid rgba(63,185,80,0.3);
-      color: var(--green);
-      padding: 2px 8px;
-      border-radius: 20px;
-    }
-    .loss-badge {
-      position: absolute;
-      top: 16px; right: 16px;
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: var(--red-dim);
-      border: 1px solid rgba(248,81,73,0.4);
-      color: var(--red);
-      padding: 2px 8px;
-      border-radius: 20px;
-    }
-
-    .card-name {
-      font-size: 1.05rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-    .card-avail {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-    }
-    .card-avail.ok  { color: var(--green); }
-    .card-avail.bad { color: var(--red); }
-    .avail-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-    .avail-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
-    .avail-dot.bad { background: var(--red); }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .metric { display: flex; flex-direction: column; gap: 3px; }
-    .metric-label {
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .metric-value {
-      font-size: 1.05rem;
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--text);
-    }
-    .metric-value.null { color: var(--text-dim); font-style: italic; font-size: 0.85rem; }
-    .metric-value.good { color: var(--green); }
-    .metric-value.warn { color: var(--yellow); }
-    .metric-value.bad  { color: var(--red); }
-
-    /* Score bar */
-    .score-bar-wrap { margin-top: 20px; }
-    .score-bar-label { display: flex; justify-content: space-between; margin-bottom: 6px; }
-    .score-bar-label .score-title { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
-    .score-bar-label .score-num { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; }
-    .score-bar-track {
-      height: 5px;
-      background: var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    /* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    #empty-state {
-      text-align: center;
-      padding: 80px 24px;
-      color: var(--text-muted);
-    }
-    #empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
-    #empty-state h3 { font-size: 1.1rem; font-weight: 500; color: var(--text); margin-bottom: 8px; }
-    #empty-state p { font-size: 0.88rem; }
-    #empty-state .demo-steps {
-      margin-top: 28px;
-      display: inline-flex;
-      flex-direction: column;
-      gap: 8px;
-      text-align: left;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 22px;
       font-size: 0.82rem;
-    }
-    #empty-state .demo-steps .step {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-    #empty-state .demo-steps .step-num {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(88,166,255,0.1);
-      border: 1px solid rgba(88,166,255,0.2);
-      border-radius: 4px;
-      padding: 1px 6px;
-      flex-shrink: 0;
-      margin-top: 2px;
+      margin-top: 16px;
     }
-    #empty-state .demo-steps .step-txt { color: var(--text-muted); line-height: 1.5; }
-    #empty-state .demo-steps .step-txt strong { color: var(--text); }
 
-    /* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ---- Footer ---------------------------------------------------------- */
     footer {
-      border-top: 1px solid var(--border-subtle);
-      padding: 24px 0;
+      border-top: 1px solid var(--border-sub);
+      padding: 20px 0;
+      font-size: 0.72rem;
+      color: var(--dim);
       text-align: center;
-      font-size: 0.78rem;
-      color: var(--text-dim);
     }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
 
-    /* â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
+    /* ---- Animations ------------------------------------------------------ */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    @keyframes spin  { to{transform:rotate(360deg)} }
+    @keyframes fadeIn{ from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+
+    .spin {
+      width:14px; height:14px;
+      border:2px solid rgba(13,17,23,.3);
+      border-top-color:#0d1117;
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+      flex-shrink:0;
+    }
+    .spin-muted {
+      width:14px; height:14px;
+      border:2px solid rgba(255,255,255,.1);
+      border-top-color:var(--muted);
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+      flex-shrink:0;
     }
   </style>
 </head>
 <body>
 
-<!-- â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ======== HEADER ======================================================= -->
 <header>
   <div class="container">
-    <div class="header-badge">Local Loopback Demo</div>
-    <h1>Network Traffic <span>Monitor</span></h1>
-    <p class="header-sub">SD-WAN Path Selection Â· Python 3.12 Â· Powered by application-level TCP probing</p>
-    <div class="demo-notice">
-      <strong>âš  Demo environment:</strong>
-      All paths are local loopback (127.0.0.1). Throughput figures are
-      application-level TCP throughput in the local test environment â€”
-      <strong>not WAN or Internet bandwidth</strong>. Path selection logic
-      is identical to a production system; only the destinations differ.
+    <div class="header-row">
+      <div class="header-brand">
+        <div class="brand-dot"></div>
+        <h1>Network Traffic <em>Monitor</em></h1>
+      </div>
+      <div class="header-meta">
+        <span>Python 3.12 &nbsp;&middot;&nbsp; Local loopback demo</span>
+        <a href="/docs">API docs</a>
+        <a href="/health">Health</a>
+      </div>
     </div>
   </div>
 </header>
 
-<!-- â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ======== PIPELINE BAR ================================================= -->
+<div class="pipeline">
+  <div class="container">
+    <div class="pipeline-inner">
+      <div class="pip-step"><div class="pip-icon">1</div> Probe paths</div>
+      <span class="pip-arrow">&rsaquo;</span>
+      <div class="pip-step"><div class="pip-icon">2</div> Measure RTT &bull; Loss &bull; Jitter &bull; Throughput</div>
+      <span class="pip-arrow">&rsaquo;</span>
+      <div class="pip-step"><div class="pip-icon">3</div> Score paths</div>
+      <span class="pip-arrow">&rsaquo;</span>
+      <div class="pip-step"><div class="pip-icon">4</div> Select preferred path</div>
+      <span class="pip-arrow">&rsaquo;</span>
+      <div class="pip-step"><div class="pip-icon">5</div> Detect failover</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MAIN ========================================================= -->
 <main>
   <div class="container">
 
-    <!-- Controls -->
-    <div class="section-label" id="controls-label" style="display:none">Demo Controls</div>
-    <div class="controls">
-      <button id="run-btn" onclick="runCycle()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-        Run Monitoring Cycle
-      </button>
-
-      <button id="fail-btn" onclick="simulateFailure()">
-        âš¡ Simulate Primary Failure
-      </button>
-
-      <button id="reset-btn" onclick="resetDemo()">
-        â†º Reset Demo
-      </button>
-
-      <div class="cycle-counter" id="cycle-counter" style="display:none">
-        Cycle <span id="cycle-num">0</span>
+    <!-- Preferred path hero -->
+    <div class="section-label">Current Preferred Path</div>
+    <div class="preferred-hero pref-idle" id="hero">
+      <div class="hero-left">
+        <div class="hero-eyebrow">Selected by scoring engine</div>
+        <div class="hero-path-name no-path" id="hero-name">Not yet measured</div>
       </div>
-    </div>
-
-    <!-- Demo stage indicator -->
-    <div id="demo-stage">
-      <span class="stage-dot"></span>
-      <span class="stage-label">Demo stage:</span>
-      <span class="stage-value" id="stage-text">HEALTHY</span>
-      <span class="stage-hint" id="stage-hint"></span>
-    </div>
-
-    <!-- Error -->
-    <div id="error-msg"></div>
-
-    <!-- Status banner -->
-    <div id="status-banner">
-      <div class="banner-event" id="banner-event"></div>
-      <div class="banner-detail" id="banner-detail"></div>
-    </div>
-
-    <!-- PATH DECISION panel -->
-    <div id="decision-panel">
-      <div class="decision-header">
-        <div class="decision-title">PATH DECISION</div>
-        <div class="decision-event-badge" id="decision-badge"></div>
+      <div class="hero-right">
+        <div class="hero-event-badge badge-idle" id="hero-badge">Awaiting first cycle</div>
+        <div class="hero-transition" id="hero-transition">
+          <span class="tr-from" id="tr-from"></span>
+          <span>&rarr;</span>
+          <span class="tr-to" id="tr-to"></span>
+        </div>
       </div>
-
-      <div class="decision-preferred">
-        <div class="decision-pref-label">Selected Path</div>
-        <div class="decision-pref-name" id="decision-pref-name">â€”</div>
-      </div>
-
-      <div class="decision-transition" id="decision-transition">
-        <span>Failover:</span>
-        <span class="transition-from" id="trans-from"></span>
-        <span class="transition-arrow">â†’</span>
-        <span class="transition-to" id="trans-to"></span>
-      </div>
-
-      <div class="score-comparison" id="score-comparison"></div>
     </div>
 
     <!-- Path cards -->
-    <div class="section-label" id="paths-section-label" style="display:none">Monitored Paths</div>
-    <div id="paths-grid"></div>
+    <div class="section-label">Monitored Paths</div>
+    <div class="paths-grid" id="paths-grid">
 
-    <!-- Empty state -->
-    <div id="empty-state">
-      <div class="empty-icon">ðŸ“¡</div>
-      <h3>No monitoring data yet</h3>
-      <p>Use the demo controls above to walk through a full failover scenario.</p>
-      <div class="demo-steps">
-        <div class="step"><span class="step-num">1</span><span class="step-txt"><strong>Run Monitoring Cycle</strong> â€” see INITIAL_SELECTION and both paths healthy</span></div>
-        <div class="step"><span class="step-num">2</span><span class="step-txt"><strong>Run again</strong> â€” see NO_CHANGE (system is stable)</span></div>
-        <div class="step"><span class="step-num">3</span><span class="step-txt"><strong>Simulate Primary Failure</strong> â€” stops the real primary server</span></div>
-        <div class="step"><span class="step-num">4</span><span class="step-txt"><strong>Run Monitoring Cycle</strong> â€” see FAILOVER: Primary â†’ Backup</span></div>
-        <div class="step"><span class="step-num">5</span><span class="step-txt"><strong>Reset Demo</strong> â€” restart all servers and repeat from step 1</span></div>
+      <!-- PRIMARY card — always visible -->
+      <div class="path-card state-idle" id="card-primary">
+        <div class="card-head">
+          <div>
+            <div class="card-role">Primary</div>
+            <div class="card-name">PRIMARY</div>
+          </div>
+          <div class="card-status-chip chip-idle" id="chip-primary">
+            <span class="chip-dot off"></span> Idle
+          </div>
+        </div>
+        <div class="metrics" id="metrics-primary">
+          <div class="m-item"><div class="m-label">RTT</div><div class="m-val idle" id="m-primary-rtt">&mdash;</div></div>
+          <div class="m-item"><div class="m-label">Loss</div><div class="m-val idle" id="m-primary-loss">&mdash;</div></div>
+          <div class="m-item"><div class="m-label">Jitter</div><div class="m-val idle" id="m-primary-jitter">&mdash;</div></div>
+          <div class="m-item"><div class="m-label">Throughput</div><div class="m-val idle" id="m-primary-tput">&mdash;</div></div>
+        </div>
+        <div class="score-wrap">
+          <div class="score-row">
+            <span class="score-lbl">Score</span>
+            <span class="score-num" id="score-primary-num" style="color:var(--dim)">&mdash;</span>
+          </div>
+          <div class="score-track">
+            <div class="score-fill" id="score-primary-bar" style="width:0%;background:var(--dim)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BACKUP card — always visible -->
+      <div class="path-card state-idle" id="card-backup">
+        <div class="card-head">
+          <div>
+            <div class="card-role">Backup</div>
+            <div class="card-name">BACKUP</div>
+          </div>
+          <div class="card-status-chip chip-idle" id="chip-backup">
+            <span class="chip-dot off"></span> Idle
+          </div>
+        </div>
+        <div class="metrics" id="metrics-backup">
+          <div class="m-item"><div class="m-label">RTT</div><div class="m-val idle" id="m-backup-rtt">&mdash;</div></div>
+          <div class="m-item"><div class="m-label">Loss</div><div class="m-val idle" id="m-backup-loss">&mdash;</div></div>
+          <div class="m-item"><div class="m-label">Jitter</div><div class="m-val idle" id="m-backup-jitter">&mdash;</div></div>
+          <div class="m-item"><div class="m-label">Throughput</div><div class="m-val idle" id="m-backup-tput">&mdash;</div></div>
+        </div>
+        <div class="score-wrap">
+          <div class="score-row">
+            <span class="score-lbl">Score</span>
+            <span class="score-num" id="score-backup-num" style="color:var(--dim)">&mdash;</span>
+          </div>
+          <div class="score-track">
+            <div class="score-fill" id="score-backup-bar" style="width:0%;background:var(--dim)"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /#paths-grid -->
+
+    <!-- Last event bar -->
+    <div class="section-label">Last Cycle</div>
+    <div class="event-bar" id="event-bar">
+      <span class="event-bar-label">Event</span>
+      <div class="event-bar-content">
+        <div class="hero-event-badge badge-idle" id="event-badge">No cycle run yet</div>
+        <div class="hero-transition" id="event-transition">
+          <span class="tr-from" id="ev-from"></span>
+          <span>&rarr;</span>
+          <span class="tr-to" id="ev-to"></span>
+        </div>
+      </div>
+      <div class="event-bar-note">
+        Cycle <span id="cycle-count">0</span>
       </div>
     </div>
+
+    <!-- Controls -->
+    <div class="section-label">Demo Controls</div>
+    <div class="controls-row">
+      <button id="run-btn" onclick="runCycle()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        Run Monitoring Cycle
+      </button>
+      <button id="fail-btn" onclick="simulateFailure()">
+        &#9889; Simulate Primary Failure
+      </button>
+      <button id="reset-btn" onclick="resetDemo()">
+        &#8635; Reset Demo
+      </button>
+      <div class="demo-stage-pill" id="stage-pill">
+        <span class="pill-dot" id="pill-dot"></span>
+        <span id="pill-text"></span>
+      </div>
+    </div>
+    <div id="error-bar"></div>
 
   </div>
 </main>
 
+<!-- ======== FOOTER ======================================================= -->
 <footer>
   <div class="container">
-    <a href="/docs">API Docs</a> Â· <a href="/health">Health</a> Â·
-    Network Traffic Monitor â€” local loopback demonstration only â€” not WAN bandwidth
+    Network Traffic Monitor &mdash; local loopback demonstration &mdash;
+    throughput figures are application-level TCP, not WAN bandwidth
+    &nbsp;&middot;&nbsp;
+    <a href="/docs">API docs</a>
   </div>
 </footer>
 
-<!-- â”€â”€ JavaScript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ======== JAVASCRIPT =================================================== -->
 <script>
-  'use strict';
+'use strict';
 
-  let cycleCount   = 0;
-  let primaryFailed = false;
+/* ---- State --------------------------------------------------------------- */
+let cycleCount   = 0;
+let primaryFailed = false;
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ---- Helpers ------------------------------------------------------------- */
+function scoreColor(score, available) {
+  if (!available)  return 'var(--red)';
+  if (score >= 60) return 'var(--green)';
+  if (score >= 35) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function scoreClass(score, available) {
+  if (!available)  return 'red';
+  if (score >= 60) return 'green';
+  if (score >= 35) return 'yellow';
+  return 'red';
+}
+function rttClass(v) {
+  if (v === null) return 'idle';
+  if (v < 5)  return 'green';
+  if (v < 50) return 'yellow';
+  return 'red';
+}
+function lossClass(v) {
+  if (v === null) return 'idle';
+  if (v === 0)  return 'green';
+  if (v < 50)   return 'yellow';
+  return 'red';
+}
+function fmt(v, unit, dp) {
+  if (v === null || v === undefined) return null;
+  return Number(v).toFixed(dp) + '\u00a0' + unit;
+}
 
-  function scoreColor(score, available) {
-    if (!available) return 'var(--red)';
-    if (score >= 60) return 'var(--green)';
-    if (score >= 35) return 'var(--yellow)';
-    return 'var(--red)';
+function eventClass(ev) {
+  const map = { initial_selection:'init', no_change:'stable', failover:'failover', no_available_path:'nopaths' };
+  return map[ev] || 'idle';
+}
+function eventLabel(ev) {
+  const map = {
+    initial_selection: 'Initial Selection',
+    no_change:         'No Change',
+    failover:          'Failover',
+    no_available_path: 'No Available Path',
+  };
+  return map[ev] || ev;
+}
+
+function setBusy(busy) {
+  document.getElementById('run-btn').disabled   = busy;
+  document.getElementById('fail-btn').disabled  = busy || primaryFailed;
+  document.getElementById('reset-btn').disabled = busy;
+}
+
+/* ---- Card updater -------------------------------------------------------- */
+function updateCard(name, metrics, preferred) {
+  const card = document.getElementById('card-' + name);
+  const chip = document.getElementById('chip-' + name);
+  if (!card) return;
+
+  // Remove any existing loss badge
+  const existing = card.querySelector('.loss-badge');
+  if (existing) existing.remove();
+
+  const isPreferred   = preferred === name;
+  const isUnavailable = !metrics.available;
+
+  // Card state class
+  card.className = 'path-card ' + (isPreferred ? 'state-preferred' : isUnavailable ? 'state-unavailable' : '');
+
+  // Status chip
+  let chipHtml = '';
+  if (isPreferred) {
+    chipHtml = '<span class="chip-dot ok"></span> &#9733; Preferred';
+    chip.className = 'card-status-chip chip-preferred';
+  } else if (isUnavailable) {
+    chipHtml = '<span class="chip-dot bad"></span> Unavailable';
+    chip.className = 'card-status-chip chip-unavailable';
+  } else {
+    chipHtml = '<span class="chip-dot ok"></span> Available';
+    chip.className = 'card-status-chip chip-available';
+  }
+  chip.innerHTML = chipHtml;
+
+  // Metric values
+  const rttV  = fmt(metrics.rtt_ms,          'ms',   2);
+  const losV  = fmt(metrics.loss_percent,     '%',    1);
+  const jitV  = fmt(metrics.jitter_ms,        'ms',   2);
+  const tptV  = fmt(metrics.throughput_mbps,  'Mbps', 1);
+
+  function setMetric(id, val, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val !== null ? val : '\u2014';
+    el.className   = 'm-val ' + (val !== null ? cls : 'idle');
   }
 
-  function lossClass(loss) {
-    if (loss === null || loss === undefined) return 'null';
-    if (loss === 0) return 'good';
-    if (loss < 50) return 'warn';
-    return 'bad';
+  setMetric('m-' + name + '-rtt',   rttV,  rttClass(metrics.rtt_ms));
+  setMetric('m-' + name + '-loss',  losV,  lossClass(metrics.loss_percent));
+  setMetric('m-' + name + '-jitter',jitV,  'white');
+  setMetric('m-' + name + '-tput',  tptV,  metrics.available ? 'green' : 'red');
+
+  // Score bar
+  const scoreNum = document.getElementById('score-' + name + '-num');
+  const scoreBar = document.getElementById('score-' + name + '-bar');
+  if (scoreNum && scoreBar) {
+    const sc = metrics.available ? metrics.score : 0;
+    const cl = scoreColor(metrics.score, metrics.available);
+    scoreNum.textContent = metrics.available ? metrics.score.toFixed(1) : 'N/A';
+    scoreNum.style.color = cl;
+    scoreBar.style.width = sc + '%';
+    scoreBar.style.background = cl;
   }
 
-  function eventClass(event) {
-    const map = {
-      'initial_selection': 'initial',
-      'no_change':         'nochange',
-      'failover':          'failover',
-      'no_available_path': 'nopaths',
-    };
-    return map[event] || 'nochange';
+  // 100% LOSS badge
+  if (isUnavailable && metrics.loss_percent !== null && metrics.loss_percent >= 100) {
+    const b = document.createElement('div');
+    b.className = 'loss-badge';
+    b.textContent = '100% LOSS';
+    card.appendChild(b);
+  }
+}
+
+/* ---- Hero updater -------------------------------------------------------- */
+function updateHero(data) {
+  const heroName  = document.getElementById('hero-name');
+  const heroBadge = document.getElementById('hero-badge');
+  const heroTrans = document.getElementById('hero-transition');
+  const hero      = document.getElementById('hero');
+
+  // Path name
+  if (data.preferred_path) {
+    heroName.textContent = data.preferred_path.toUpperCase();
+    heroName.className   = 'hero-path-name has-path';
+  } else {
+    heroName.textContent = 'None available';
+    heroName.className   = 'hero-path-name no-path';
   }
 
-  function eventLabel(event) {
-    const map = {
-      'initial_selection': 'ðŸŸ¢ INITIAL SELECTION',
-      'no_change':         'ðŸ”µ NO CHANGE',
-      'failover':          'ðŸŸ¡ FAILOVER',
-      'no_available_path': 'ðŸ”´ NO AVAILABLE PATH',
-    };
-    return map[event] || event.toUpperCase();
-  }
+  // Hero class
+  hero.className = 'preferred-hero pref-' + (data.preferred_path || 'none');
 
-  function setButtonsBusy(busy) {
-    document.getElementById('run-btn').disabled   = busy;
-    document.getElementById('fail-btn').disabled  = busy;
-    document.getElementById('reset-btn').disabled = busy;
-  }
+  // Event badge
+  const eCls = eventClass(data.event);
+  heroBadge.textContent = eventLabel(data.event);
+  heroBadge.className   = 'hero-event-badge badge-' + eCls;
 
-  function updateDemoStage(failed) {
-    primaryFailed = failed;
-    const el    = document.getElementById('demo-stage');
-    const text  = document.getElementById('stage-text');
-    const hint  = document.getElementById('stage-hint');
-    const lbl   = document.getElementById('controls-label');
-    el.style.display = 'flex';
-    lbl.style.display = 'flex';
-    if (failed) {
-      el.className = 'failure';
-      text.textContent = 'PRIMARY FAILURE ACTIVE';
-      hint.textContent = 'â†³ Run a cycle to observe FAILOVER';
-      document.getElementById('fail-btn').disabled = true;
-    } else {
-      el.className = 'healthy';
-      text.textContent = 'HEALTHY';
-      hint.textContent = '';
-      document.getElementById('fail-btn').disabled = false;
+  // Transition
+  if (data.event === 'failover' && data.previous_path && data.preferred_path) {
+    heroTrans.classList.add('show');
+    document.getElementById('tr-from').textContent = data.previous_path.toUpperCase();
+    document.getElementById('tr-to').textContent   = data.preferred_path.toUpperCase();
+  } else {
+    heroTrans.classList.remove('show');
+  }
+}
+
+/* ---- Event bar updater --------------------------------------------------- */
+function updateEventBar(data) {
+  const eBadge = document.getElementById('event-badge');
+  const eTrans = document.getElementById('event-transition');
+  const eCls   = eventClass(data.event);
+
+  eBadge.textContent = eventLabel(data.event);
+  eBadge.className   = 'hero-event-badge badge-' + eCls;
+
+  if (data.event === 'failover' && data.previous_path && data.preferred_path) {
+    eTrans.classList.add('show');
+    document.getElementById('ev-from').textContent = data.previous_path.toUpperCase();
+    document.getElementById('ev-to').textContent   = data.preferred_path.toUpperCase();
+  } else {
+    eTrans.classList.remove('show');
+  }
+}
+
+/* ---- Demo stage ---------------------------------------------------------- */
+function updateStage(failed) {
+  primaryFailed = failed;
+  const pill = document.getElementById('stage-pill');
+  const dot  = document.getElementById('pill-dot');
+  const txt  = document.getElementById('pill-text');
+  pill.style.display = 'inline-flex';
+  if (failed) {
+    pill.className = 'demo-stage-pill failure';
+    dot.className  = 'pill-dot bad';
+    txt.textContent = 'Primary failure active';
+    document.getElementById('fail-btn').disabled = true;
+  } else {
+    pill.className = 'demo-stage-pill healthy';
+    dot.className  = 'pill-dot ok';
+    txt.textContent = 'Healthy';
+    document.getElementById('fail-btn').disabled = false;
+  }
+}
+
+/* ---- Main: Run cycle ----------------------------------------------------- */
+async function runCycle() {
+  const btn = document.getElementById('run-btn');
+  setBusy(true);
+  btn.innerHTML = '<div class="spin"></div> Measuring&hellip;';
+  document.getElementById('error-bar').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/v1/monitor');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
+    const data = await resp.json();
+
+    cycleCount++;
+    document.getElementById('cycle-count').textContent = cycleCount;
+
+    updateHero(data);
+    updateEventBar(data);
+    updateStage(data.primary_failed);
+
+    for (const [name, m] of Object.entries(data.paths)) {
+      updateCard(name, m, data.preferred_path);
     }
+
+  } catch (err) {
+    const eb = document.getElementById('error-bar');
+    eb.style.display = 'block';
+    eb.textContent   = 'Error: ' + err.message;
+  } finally {
+    setBusy(false);
+    if (primaryFailed) document.getElementById('fail-btn').disabled = true;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Run Monitoring Cycle';
   }
+}
 
-  // â”€â”€ Render functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ---- Simulate failure ---------------------------------------------------- */
+async function simulateFailure() {
+  const btn = document.getElementById('fail-btn');
+  setBusy(true);
+  btn.innerHTML = '<div class="spin-muted"></div> Stopping primary&hellip;';
+  document.getElementById('error-bar').style.display = 'none';
 
-  function renderStatusBanner(data) {
-    const banner = document.getElementById('status-banner');
-    const evEl   = document.getElementById('banner-event');
-    const detEl  = document.getElementById('banner-detail');
-
-    banner.className = eventClass(data.event);
-    banner.style.display = 'block';
-    evEl.textContent = eventLabel(data.event);
-
-    let detail = '';
-    if (data.preferred_path) {
-      detail = `Preferred: ${data.preferred_path.toUpperCase()}`;
-    }
-    if (data.event === 'failover' && data.previous_path) {
-      detail = `${data.previous_path.toUpperCase()} â†’ ${(data.preferred_path || '?').toUpperCase()}`;
-    }
-    if (data.event === 'no_available_path') {
-      detail = 'All paths are currently unreachable';
-    }
-    detEl.textContent = detail;
+  try {
+    const resp = await fetch('/api/v1/demo/simulate-failure', { method: 'POST' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
+    const data = await resp.json();
+    updateStage(data.primary_failed);
+  } catch (err) {
+    const eb = document.getElementById('error-bar');
+    eb.style.display = 'block';
+    eb.textContent   = 'Error: ' + err.message;
+  } finally {
+    setBusy(false);
+    if (primaryFailed) document.getElementById('fail-btn').disabled = true;
+    btn.innerHTML = '&#9889; Simulate Primary Failure';
   }
+}
 
-  function renderDecisionPanel(data) {
-    const panel = document.getElementById('decision-panel');
-    panel.style.display = 'block';
+/* ---- Reset --------------------------------------------------------------- */
+async function resetDemo() {
+  const btn = document.getElementById('reset-btn');
+  setBusy(true);
+  btn.innerHTML = '<div class="spin-muted"></div> Resetting&hellip;';
+  document.getElementById('error-bar').style.display = 'none';
 
-    const cls = eventClass(data.event);
+  try {
+    const resp = await fetch('/api/v1/demo/reset', { method: 'POST' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
+    const data = await resp.json();
 
-    // Panel border highlight on failover
-    if (data.event === 'failover') {
-      panel.classList.add('failover-active');
-    } else {
-      panel.classList.remove('failover-active');
-    }
+    // Reset UI
+    cycleCount = 0;
+    document.getElementById('cycle-count').textContent = '0';
 
-    // Event badge
-    const badge = document.getElementById('decision-badge');
-    badge.className = 'decision-event-badge ' + cls;
-    badge.textContent = data.event.toUpperCase().replace(/_/g, ' ');
+    // Reset hero
+    document.getElementById('hero-name').textContent = 'Not yet measured';
+    document.getElementById('hero-name').className   = 'hero-path-name no-path';
+    document.getElementById('hero').className        = 'preferred-hero pref-idle';
+    document.getElementById('hero-badge').textContent= 'Awaiting first cycle';
+    document.getElementById('hero-badge').className  = 'hero-event-badge badge-idle';
+    document.getElementById('hero-transition').classList.remove('show');
 
-    // Preferred path name
-    const prefName = document.getElementById('decision-pref-name');
-    if (data.preferred_path) {
-      prefName.textContent = data.preferred_path.toUpperCase();
-      prefName.className = 'decision-pref-name';
-    } else {
-      prefName.textContent = 'NONE';
-      prefName.className = 'decision-pref-name none';
-    }
+    // Reset event bar
+    document.getElementById('event-badge').textContent = 'No cycle run yet';
+    document.getElementById('event-badge').className   = 'hero-event-badge badge-idle';
+    document.getElementById('event-transition').classList.remove('show');
 
-    // Transition arrow (FAILOVER only)
-    const trans = document.getElementById('decision-transition');
-    if (data.event === 'failover' && data.previous_path && data.preferred_path) {
-      trans.classList.add('show');
-      document.getElementById('trans-from').textContent = data.previous_path.toUpperCase();
-      document.getElementById('trans-to').textContent   = data.preferred_path.toUpperCase();
-    } else {
-      trans.classList.remove('show');
-    }
+    // Reset cards
+    ['primary', 'backup'].forEach(name => {
+      const card = document.getElementById('card-' + name);
+      if (card) {
+        card.className = 'path-card state-idle';
+        const lb = card.querySelector('.loss-badge');
+        if (lb) lb.remove();
+      }
+      const chip = document.getElementById('chip-' + name);
+      if (chip) { chip.className = 'card-status-chip chip-idle'; chip.innerHTML = '<span class="chip-dot off"></span> Idle'; }
+      ['rtt','loss','jitter','tput'].forEach(m => {
+        const el = document.getElementById('m-' + name + '-' + m);
+        if (el) { el.textContent = '\u2014'; el.className = 'm-val idle'; }
+      });
+      const sn = document.getElementById('score-' + name + '-num');
+      const sb = document.getElementById('score-' + name + '-bar');
+      if (sn) { sn.textContent = '\u2014'; sn.style.color = 'var(--dim)'; }
+      if (sb) { sb.style.width = '0%'; sb.style.background = 'var(--dim)'; }
+    });
 
-    // Score comparison rows
-    const sorted = Object.entries(data.paths).sort((a, b) => a[1].rank - b[1].rank);
-    const compEl = document.getElementById('score-comparison');
-    compEl.innerHTML = sorted.map(([name, m]) => {
-      const isPreferred  = name === data.preferred_path;
-      const isUnavail    = !m.available;
-      const color        = scoreColor(m.score, m.available);
-      const dotCls       = m.available ? 'ok' : 'bad';
-      const scorePct     = m.available ? m.score : 0;
-      const scoreStr     = m.available ? m.score.toFixed(1) : 'N/A';
-      const statusCls    = isPreferred ? 'selected' : isUnavail ? 'unavail' : 'standby';
-      const statusTxt    = isPreferred ? 'â˜… Selected' : isUnavail ? 'âœ— Unavailable' : 'Standby';
-      return `
-        <div class="score-row">
-          <div class="score-row-name">
-            <span class="mini-dot ${dotCls}"></span>
-            ${name.toUpperCase()}
-          </div>
-          <div class="score-row-bar-wrap">
-            <div class="score-row-bar-track">
-              <div class="score-row-bar-fill" style="width:${scorePct}%;background:${color}"></div>
-            </div>
-          </div>
-          <div class="score-row-num" style="color:${color}">${scoreStr}</div>
-          <div class="score-row-status ${statusCls}">${statusTxt}</div>
-        </div>`;
-    }).join('');
+    updateStage(data.primary_failed);
+
+  } catch (err) {
+    const eb = document.getElementById('error-bar');
+    eb.style.display = 'block';
+    eb.textContent   = 'Error: ' + err.message;
+  } finally {
+    setBusy(false);
+    if (primaryFailed) document.getElementById('fail-btn').disabled = true;
+    btn.innerHTML = '&#8635; Reset Demo';
   }
-
-  function metricEl(label, value, unit, cssClass, decimals = 1) {
-    const valStr  = value !== null && value !== undefined
-      ? Number(value).toFixed(decimals) + ' ' + unit
-      : 'â€”';
-    const valClass = (value === null || value === undefined) ? 'null' : (cssClass || '');
-    return `
-      <div class="metric">
-        <div class="metric-label">${label}</div>
-        <div class="metric-value ${valClass}">${valStr}</div>
-      </div>`;
-  }
-
-  function renderPathCard(name, metrics, preferred) {
-    const isPreferred   = preferred === name;
-    const isUnavailable = !metrics.available;
-    const cardClass = isPreferred  ? 'path-card preferred'
-                    : isUnavailable ? 'path-card unavailable'
-                    : 'path-card';
-
-    const rttClass   = metrics.rtt_ms !== null ? (metrics.rtt_ms < 5 ? 'good' : metrics.rtt_ms < 50 ? 'warn' : 'bad') : 'null';
-    const lossClsVal = lossClass(metrics.loss_percent);
-    const scoreNum   = metrics.available ? metrics.score.toFixed(1) : 'N/A';
-    const scorePct   = metrics.available ? metrics.score : 0;
-    const scoreClr   = scoreColor(metrics.score, metrics.available);
-
-    // Badge: preferred star or 100% LOSS chip
-    let badgeHtml = '';
-    if (isPreferred) {
-      badgeHtml = '<div class="preferred-star">â˜… Preferred</div>';
-    } else if (isUnavailable && metrics.loss_percent !== null && metrics.loss_percent >= 100) {
-      badgeHtml = '<div class="loss-badge">100% LOSS</div>';
-    } else if (isUnavailable) {
-      badgeHtml = '<div class="loss-badge">UNAVAILABLE</div>';
-    }
-
-    return `
-    <div class="${cardClass}" id="card-${name}">
-      ${badgeHtml}
-      <div class="card-name">${name}</div>
-      <div class="card-avail ${metrics.available ? 'ok' : 'bad'}">
-        <span class="avail-dot ${metrics.available ? 'ok' : 'bad'}"></span>
-        ${metrics.available ? 'Available' : 'Unavailable'}
-      </div>
-      <div class="metrics-grid">
-        ${metricEl('RTT', metrics.rtt_ms, 'ms', rttClass, 2)}
-        ${metricEl('Loss', metrics.loss_percent, '%', lossClsVal, 1)}
-        ${metricEl('Jitter', metrics.jitter_ms, 'ms', '', 2)}
-        ${metricEl('Throughput', metrics.throughput_mbps, 'Mbps', 'good', 1)}
-      </div>
-      <div class="score-bar-wrap">
-        <div class="score-bar-label">
-          <span class="score-title">Score</span>
-          <span class="score-num" style="color:${scoreClr}">${scoreNum}</span>
-        </div>
-        <div class="score-bar-track">
-          <div class="score-bar-fill"
-               style="width:${scorePct}%; background:${scoreClr}"></div>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  function renderPaths(data) {
-    const grid  = document.getElementById('paths-grid');
-    const label = document.getElementById('paths-section-label');
-    label.style.display = 'flex';
-
-    const sorted = Object.entries(data.paths).sort((a, b) => a[1].rank - b[1].rank);
-    grid.innerHTML = sorted
-      .map(([name, metrics]) => renderPathCard(name, metrics, data.preferred_path))
-      .join('');
-  }
-
-  // â”€â”€ Main cycle function â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  async function runCycle() {
-    const btn      = document.getElementById('run-btn');
-    const errDiv   = document.getElementById('error-msg');
-    const emptyDiv = document.getElementById('empty-state');
-
-    setButtonsBusy(true);
-    btn.innerHTML = `<div class="spinner"></div> Monitoringâ€¦`;
-    errDiv.style.display = 'none';
-
-    try {
-      const resp = await fetch('/api/v1/monitor');
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-      const data = await resp.json();
-
-      emptyDiv.style.display = 'none';
-
-      cycleCount++;
-      const counterEl = document.getElementById('cycle-counter');
-      counterEl.style.display = 'block';
-      document.getElementById('cycle-num').textContent = cycleCount;
-
-      renderStatusBanner(data);
-      renderDecisionPanel(data);
-      renderPaths(data);
-      updateDemoStage(data.primary_failed);
-
-    } catch (err) {
-      errDiv.style.display = 'block';
-      errDiv.textContent = 'âš  Error: ' + err.message;
-    } finally {
-      setButtonsBusy(false);
-      // Re-disable fail-btn if primary is already failed
-      if (primaryFailed) document.getElementById('fail-btn').disabled = true;
-      btn.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-        Run Monitoring Cycle`;
-    }
-  }
-
-  // â”€â”€ Simulate failure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  async function simulateFailure() {
-    const btn    = document.getElementById('fail-btn');
-    const errDiv = document.getElementById('error-msg');
-
-    setButtonsBusy(true);
-    btn.innerHTML = `<div class="spinner-muted"></div> Stopping primaryâ€¦`;
-    errDiv.style.display = 'none';
-
-    try {
-      const resp = await fetch('/api/v1/demo/simulate-failure', { method: 'POST' });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-      const data = await resp.json();
-      updateDemoStage(data.primary_failed);
-    } catch (err) {
-      errDiv.style.display = 'block';
-      errDiv.textContent = 'âš  Error: ' + err.message;
-    } finally {
-      setButtonsBusy(false);
-      // Keep fail-btn disabled after triggering failure
-      if (primaryFailed) document.getElementById('fail-btn').disabled = true;
-      btn.innerHTML = `âš¡ Simulate Primary Failure`;
-    }
-  }
-
-  // â”€â”€ Reset demo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  async function resetDemo() {
-    const btn      = document.getElementById('reset-btn');
-    const errDiv   = document.getElementById('error-msg');
-    const emptyDiv = document.getElementById('empty-state');
-
-    setButtonsBusy(true);
-    btn.innerHTML = `<div class="spinner-muted"></div> Resettingâ€¦`;
-    errDiv.style.display = 'none';
-
-    try {
-      const resp = await fetch('/api/v1/demo/reset', { method: 'POST' });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-      const data = await resp.json();
-
-      // Reset UI to initial state
-      cycleCount = 0;
-      document.getElementById('cycle-counter').style.display = 'none';
-      document.getElementById('cycle-num').textContent = '0';
-      document.getElementById('status-banner').style.display = 'none';
-      document.getElementById('decision-panel').style.display = 'none';
-      document.getElementById('paths-section-label').style.display = 'none';
-      document.getElementById('paths-grid').innerHTML = '';
-      emptyDiv.style.display = 'block';
-      updateDemoStage(data.primary_failed);
-
-    } catch (err) {
-      errDiv.style.display = 'block';
-      errDiv.textContent = 'âš  Error: ' + err.message;
-    } finally {
-      setButtonsBusy(false);
-      if (primaryFailed) document.getElementById('fail-btn').disabled = true;
-      btn.innerHTML = `â†º Reset Demo`;
-    }
-  }
+}
 </script>
 </body>
 </html>
