@@ -149,7 +149,8 @@ separation visible from the start, without adding premature abstractions.
 - Not a BGP, OSPF, or MPLS implementation
 - Not a production-grade SD-WAN system
 - Not a replacement for commercial products like Cisco Viptela, VMware VeloCloud, or Palo Alto Prisma SD-WAN
-
+- Not a Kubernetes, deployment
+- Not a machine-learning system
 
 ---
 
